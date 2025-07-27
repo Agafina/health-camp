@@ -1068,8 +1068,8 @@
         let currentTab = 'dashboard';
         let isOnline = false;
 
-        // API Base URL - Full localhost URL
-        const API_BASE_URL = 'http://localhost:3000/api';
+        // API Base URL - Updated to use deployed backend
+        const API_BASE_URL = 'https://health-camp-1.onrender.com/api';
 
         // Initialize the application
         document.addEventListener('DOMContentLoaded', function() {
@@ -1133,7 +1133,7 @@
             } else {
                 statusEl.textContent = '🔴 Disconnected';
                 statusEl.className = 'connection-status disconnected';
-                showAlert('dashboardAlert', '⚠️ Connection lost. Please check if the server is running on port 3000.', 'error');
+                showAlert('dashboardAlert', '⚠️ Connection lost. Please check your internet connection.', 'error');
             }
         }
 
