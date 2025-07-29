@@ -1,11 +1,4 @@
-// Handle services update - support both single service and multiple services
-        if (updateData.services && Array.isArray(updateData.services) && updateData.services.length > 0) {
-            sanitizedData.services = updateData.services;
-            sanitizedData.service = undefined; // Clear single service field
-        } else if (updateData.service) {
-            sanitizedData.services = [updateData.service];
-            sanitizedData.service = undefined; // Clear single service field
-        }// Load environment variables
+// Load environment variables
 require('dotenv').config();
 
 const express = require('express');
@@ -15,42 +8,70 @@ const cors = require('cors');
 const app = express();
 const PORT = process.env.PORT || 3000;
 
-// Middleware
-app.use(cors());
-app.use(express.json());
+// Enhanced middleware with security and logging
+app.use(cors({
+    origin: process.env.NODE_ENV === 'production' ? process.env.FRONTEND_URL : '*',
+    credentials: true
+}));
+app.use(express.json({ limit: '10mb' }));
+app.use(express.urlencoded({ extended: true, limit: '10mb' }));
 
-// Serve static files from current directory (no path module needed)
+// Request logging middleware
+app.use((req, res, next) => {
+    console.log(`${new Date().toISOString()} - ${req.method} ${req.url}`);
+    next();
+});
+
+// Serve static files from current directory
 app.use(express.static('.'));
 
-// MongoDB connection using environment variable
+// MongoDB connection with enhanced error handling
 const MONGODB_URI = process.env.MONGODB_URI;
 
 if (!MONGODB_URI) {
     console.error('❌ MONGODB_URI environment variable is not set');
+    console.error('Please set MONGODB_URI in your .env file or environment variables');
     process.exit(1);
 }
 
-mongoose.connect(MONGODB_URI)
-    .then(() => console.log('✅ Connected to MongoDB'))
-    .catch((error) => console.error('❌ MongoDB connection error:', error));
+mongoose.connect(MONGODB_URI, {
+    useNewUrlParser: true,
+    useUnifiedTopology: true,
+    serverSelectionTimeoutMS: 5000,
+    socketTimeoutMS: 45000,
+})
+.then(() => {
+    console.log('✅ Connected to MongoDB successfully');
+    console.log('📍 Database:', mongoose.connection.name);
+})
+.catch((error) => {
+    console.error('❌ MongoDB connection error:', error);
+    process.exit(1);
+});
 
-// Enhanced Patient Schema with validation
+// Enhanced Patient Schema - Production Ready
 const patientSchema = new mongoose.Schema({
     name: { 
         type: String, 
         required: [true, 'Patient name is required'],
         trim: true,
         minlength: [2, 'Name must be at least 2 characters long'],
-        maxlength: [100, 'Name cannot exceed 100 characters']
-    },
-    age: { 
-        type: String, 
-        required: [true, 'Patient age is required'],
+        maxlength: [100, 'Name cannot exceed 100 characters'],
         validate: {
             validator: function(v) {
-                return /^\d+$/.test(v) && parseInt(v) >= 0 && parseInt(v) <= 150;
+                return /^[a-zA-Z\s\-\.\']+$/.test(v);
             },
-            message: 'Age must be a valid number between 0 and 150'
+            message: 'Name can only contain letters, spaces, hyphens, dots, and apostrophes'
+        }
+    },
+    age: { 
+        type: Number,
+        required: [true, 'Patient age is required'],
+        min: [0, 'Age cannot be negative'],
+        max: [150, 'Age cannot exceed 150 years'],
+        validate: {
+            validator: Number.isInteger,
+            message: 'Age must be a whole number'
         }
     },
     sex: { 
@@ -73,9 +94,11 @@ const patientSchema = new mongoose.Schema({
         trim: true,
         validate: {
             validator: function(v) {
-                return /^[\d\-\+\(\)\s]+$/.test(v) && v.replace(/\D/g, '').length >= 8;
+                // Allow various phone number formats but ensure minimum length
+                const cleaned = v.replace(/\D/g, '');
+                return cleaned.length >= 8 && cleaned.length <= 15;
             },
-            message: 'Please enter a valid phone number with at least 8 digits'
+            message: 'Please enter a valid phone number (8-15 digits)'
         }
     },
     familyGroup: { 
@@ -86,10 +109,12 @@ const patientSchema = new mongoose.Schema({
             message: 'Family group must be one of: ESDA, MASUDA, AKUCDA, UBACDA, OTHERS'
         }
     },
+    // Legacy field - kept for backward compatibility only
     service: { 
-        type: String,
-        // Completely remove required validation and enum - this field is legacy only
+        type: String
+        // No validation - this is legacy only
     },
+    // Primary services field
     services: {
         type: [String],
         required: [true, 'At least one service is required'],
@@ -114,31 +139,33 @@ const patientSchema = new mongoose.Schema({
     registrationDate: { 
         type: String, 
         required: true,
-        default: () => new Date().toLocaleDateString()
+        default: () => new Date().toLocaleDateString('en-GB')
     },
     registrationTime: { 
         type: String, 
-        default: () => new Date().toLocaleTimeString()
+        default: () => new Date().toLocaleTimeString('en-GB')
     },
     status: { 
         type: String, 
         default: 'registered',
         enum: {
-            values: ['registered', 'completed'],
-            message: 'Status must be either registered or completed'
-        }
+            values: ['registered', 'completed', 'cancelled', 'deleted'],
+            message: 'Status must be one of: registered, completed, cancelled, deleted'
+        },
+        index: true
     },
     diagnosis: { 
         type: String, 
         default: '',
         trim: true,
-        maxlength: [1000, 'Diagnosis cannot exceed 1000 characters']
+        maxlength: [2000, 'Diagnosis cannot exceed 2000 characters']
     },
     labTests: {
         type: [String],
         default: [],
         validate: {
             validator: function(tests) {
+                if (!tests || tests.length === 0) return true; // Allow empty array
                 const validTests = [
                     'Malaria', 'HIV', 'HBV', 'HCV', 'Blood grouping', 
                     'Blood glucose', 'Syphilis', 'Ultrasound', 'X-ray',
@@ -153,7 +180,7 @@ const patientSchema = new mongoose.Schema({
         type: String, 
         default: '',
         trim: true,
-        maxlength: [2000, 'Treatment plan cannot exceed 2000 characters']
+        maxlength: [3000, 'Treatment plan cannot exceed 3000 characters']
     },
     completionDate: { 
         type: String, 
@@ -163,15 +190,16 @@ const patientSchema = new mongoose.Schema({
         type: String, 
         default: ''
     },
-    // Audit fields
+    // Enhanced audit fields
     lastModified: {
         type: Date,
-        default: Date.now
+        default: Date.now,
+        index: true
     },
     modificationHistory: [{
         action: {
             type: String,
-            enum: ['created', 'updated', 'completed'],
+            enum: ['created', 'updated', 'completed', 'cancelled', 'deleted'],
             required: true
         },
         timestamp: {
@@ -181,61 +209,131 @@ const patientSchema = new mongoose.Schema({
         changes: {
             type: mongoose.Schema.Types.Mixed,
             default: {}
-        }
-    }]
+        },
+        userAgent: String,
+        ipAddress: String
+    }],
+    // Soft delete support
+    isDeleted: {
+        type: Boolean,
+        default: false,
+        index: true
+    },
+    deletedAt: {
+        type: Date
+    }
 }, { 
-    timestamps: true 
+    timestamps: true,
+    versionKey: false
 });
 
-// Indexes for better performance
+// Compound indexes for better query performance
 patientSchema.index({ tel: 1 }, { unique: true });
-patientSchema.index({ name: 1 });
-patientSchema.index({ status: 1 });
-patientSchema.index({ service: 1 });
-patientSchema.index({ services: 1 });
-patientSchema.index({ familyGroup: 1 });
+patientSchema.index({ name: 1, familyGroup: 1 });
+patientSchema.index({ status: 1, createdAt: -1 });
+patientSchema.index({ services: 1, status: 1 });
+patientSchema.index({ familyGroup: 1, status: 1 });
+patientSchema.index({ isDeleted: 1, status: 1 });
 patientSchema.index({ createdAt: -1 });
 
-// Pre-save middleware to normalize services
+// Pre-save middleware for data normalization and validation
 patientSchema.pre('save', function(next) {
     this.lastModified = new Date();
     
-    // Handle service/services normalization - ensure we always have services array
-    if (this.services && this.services.length > 0) {
-        // If services array is provided, clear single service field to avoid conflicts
-        this.service = undefined;
-    } else if (this.service && (!this.services || this.services.length === 0)) {
-        // If single service is provided, convert to services array
-        this.services = [this.service];
-        this.service = undefined; // Clear to avoid validation conflicts
+    // Normalize phone number
+    if (this.tel) {
+        this.tel = this.tel.replace(/\s+/g, ' ').trim();
     }
     
-    // Ensure we have at least one service
+    // Normalize name
+    if (this.name) {
+        this.name = this.name.replace(/\s+/g, ' ').trim();
+    }
+    
+    // Handle service/services normalization
+    if (this.services && this.services.length > 0) {
+        // Clear legacy service field
+        this.service = undefined;
+    } else if (this.service && (!this.services || this.services.length === 0)) {
+        // Convert single service to services array
+        this.services = [this.service];
+        this.service = undefined;
+    }
+    
+    // Final validation - ensure we have services
     if (!this.services || this.services.length === 0) {
-        const error = new Error('At least one service is required');
-        return next(error);
+        return next(new Error('At least one service is required'));
+    }
+    
+    // Handle age conversion if it comes as string
+    if (typeof this.age === 'string') {
+        const ageNum = parseInt(this.age);
+        if (isNaN(ageNum)) {
+            return next(new Error('Age must be a valid number'));
+        }
+        this.age = ageNum;
     }
     
     next();
 });
 
-// Pre-update middleware to update lastModified
+// Pre-update middleware
 patientSchema.pre(['updateOne', 'findOneAndUpdate'], function(next) {
     this.set({ lastModified: new Date() });
+    
+    // Handle age conversion in updates
+    if (this.getUpdate().age && typeof this.getUpdate().age === 'string') {
+        const ageNum = parseInt(this.getUpdate().age);
+        if (!isNaN(ageNum)) {
+            this.set({ age: ageNum });
+        }
+    }
+    
     next();
 });
+
+// Instance methods
+patientSchema.methods.softDelete = function() {
+    this.isDeleted = true;
+    this.deletedAt = new Date();
+    this.status = 'deleted';
+    return this.save();
+};
+
+patientSchema.methods.restore = function() {
+    this.isDeleted = false;
+    this.deletedAt = undefined;
+    this.status = 'registered';
+    return this.save();
+};
+
+// Static methods
+patientSchema.statics.findActive = function() {
+    return this.find({ isDeleted: { $ne: true } });
+};
+
+patientSchema.statics.findDeleted = function() {
+    return this.find({ isDeleted: true });
+};
 
 const Patient = mongoose.model('Patient', patientSchema);
 
 // ===== UTILITY FUNCTIONS =====
 
-// Error handler middleware
-const handleError = (res, error, defaultMessage = 'An error occurred') => {
-    console.error('Error:', error);
+// Enhanced error handler middleware
+const handleError = (res, error, defaultMessage = 'An error occurred', req = null) => {
+    console.error('❌ Error occurred:', {
+        message: error.message,
+        stack: process.env.NODE_ENV === 'development' ? error.stack : undefined,
+        url: req?.url,
+        method: req?.method,
+        timestamp: new Date().toISOString()
+    });
     
     if (error.name === 'ValidationError') {
         const errors = Object.values(error.errors).map(err => err.message);
         return res.status(400).json({ 
+            success: false,
             error: 'Validation failed', 
             details: errors,
             message: errors.join(', ')
@@ -244,83 +342,137 @@ const handleError = (res, error, defaultMessage = 'An error occurred') => {
     
     if (error.code === 11000) {
         const field = Object.keys(error.keyPattern)[0];
-        return res.status(400).json({ 
+        const value = error.keyValue[field];
+        return res.status(409).json({ 
+            success: false,
             error: 'Duplicate entry', 
-            message: `A patient with this ${field} already exists`
+            message: `A patient with ${field} "${value}" already exists`
         });
     }
     
     if (error.name === 'CastError') {
         return res.status(400).json({ 
+            success: false,
             error: 'Invalid ID format',
             message: 'The provided ID is not valid'
         });
     }
     
-    res.status(500).json({ 
+    if (error.name === 'MongoNetworkError') {
+        return res.status(503).json({
+            success: false,
+            error: 'Database connection error',
+            message: 'Unable to connect to database. Please try again later.'
+        });
+    }
+    
+    const statusCode = error.statusCode || 500;
+    res.status(statusCode).json({ 
+        success: false,
         error: defaultMessage,
         message: error.message || defaultMessage
     });
 };
 
-// Validation helper
+// Validation helpers
 const validateObjectId = (id) => {
     return mongoose.Types.ObjectId.isValid(id);
 };
 
-// Add modification history
-const addModificationHistory = async (patientId, action, changes = {}) => {
-    try {
-        await Patient.findByIdAndUpdate(patientId, {
-            $push: {
-                modificationHistory: {
-                    action,
-                    timestamp: new Date(),
-                    changes
-                }
+const sanitizeInput = (obj) => {
+    const sanitized = {};
+    Object.keys(obj).forEach(key => {
+        if (obj[key] !== undefined && obj[key] !== null) {
+            if (typeof obj[key] === 'string') {
+                sanitized[key] = obj[key].trim();
+            } else {
+                sanitized[key] = obj[key];
             }
+        }
+    });
+    return sanitized;
+};
+
+// Add modification history with enhanced tracking
+const addModificationHistory = async (patientId, action, changes = {}, req = null) => {
+    try {
+        const historyEntry = {
+            action,
+            timestamp: new Date(),
+            changes
+        };
+        
+        if (req) {
+            historyEntry.userAgent = req.get('User-Agent');
+            historyEntry.ipAddress = req.ip || req.connection.remoteAddress;
+        }
+        
+        await Patient.findByIdAndUpdate(patientId, {
+            $push: { modificationHistory: historyEntry }
         });
     } catch (error) {
         console.error('Failed to add modification history:', error);
     }
 };
 
-// ===== ESSENTIAL API ENDPOINTS =====
+// ===== API ENDPOINTS =====
 
-// 1. Health Check - Enhanced
+// 1. Enhanced Health Check
 app.get('/api/health', async (req, res) => {
-    console.log('💓 Health check');
-    
     try {
+        console.log('💓 Health check requested');
+        
         // Test database connection
         await mongoose.connection.db.admin().ping();
         
-        // Get basic stats
-        const totalPatients = await Patient.countDocuments();
-        const pendingPatients = await Patient.countDocuments({ status: 'registered' });
-        const completedPatients = await Patient.countDocuments({ status: 'completed' });
+        // Get comprehensive stats
+        const [
+            totalPatients,
+            activePatients,
+            pendingPatients,
+            completedPatients,
+            deletedPatients,
+            recentRegistrations
+        ] = await Promise.all([
+            Patient.countDocuments(),
+            Patient.countDocuments({ isDeleted: { $ne: true } }),
+            Patient.countDocuments({ status: 'registered', isDeleted: { $ne: true } }),
+            Patient.countDocuments({ status: 'completed', isDeleted: { $ne: true } }),
+            Patient.countDocuments({ isDeleted: true }),
+            Patient.countDocuments({
+                createdAt: { $gte: new Date(Date.now() - 24 * 60 * 60 * 1000) },
+                isDeleted: { $ne: true }
+            })
+        ]);
         
         res.json({ 
+            success: true,
             status: 'OK',
             timestamp: new Date().toISOString(),
             mongoStatus: 'connected',
             environment: process.env.NODE_ENV || 'development',
+            version: '3.0.0',
             stats: {
                 totalPatients,
+                activePatients,
                 pendingPatients,
-                completedPatients
+                completedPatients,
+                deletedPatients,
+                recentRegistrations,
+                completionRate: activePatients > 0 ? Math.round((completedPatients / activePatients) * 100) : 0
             },
-            version: '2.0.0'
+            uptime: process.uptime(),
+            memory: process.memoryUsage()
         });
     } catch (error) {
-        handleError(res, error, 'Health check failed');
+        handleError(res, error, 'Health check failed', req);
     }
 });
 
-// 2. Get All Patients - Enhanced with pagination and sorting
+// 2. Get All Patients - Enhanced with advanced filtering
 app.get('/api/patients', async (req, res) => {
     try {
-        console.log('📋 Getting all patients');
+        console.log('📋 Getting patients with filters:', req.query);
         
         const { 
             page = 1, 
@@ -328,165 +480,253 @@ app.get('/api/patients', async (req, res) => {
             sort = '-createdAt',
             status,
             service,
+            services,
             familyGroup,
-            search 
+            search,
+            includeDeleted = 'false',
+            dateFrom,
+            dateTo
         } = req.query;
         
         // Build query
         let query = {};
         
-        if (status) query.status = status;
-        if (service) {
-            // Support both single service and services array
+        // Exclude deleted by default
+        if (includeDeleted !== 'true') {
+            query.isDeleted = { $ne: true };
+        }
+        
+        if (status && status !== 'all') {
+            query.status = status;
+        }
+        
+        if (service || services) {
+            const targetService = service || services;
             query.$or = [
-                { service: service },
-                { services: service }
+                { service: targetService },
+                { services: targetService }
             ];
         }
-        if (familyGroup) query.familyGroup = familyGroup;
         
-        if (search) {
+        if (familyGroup && familyGroup !== 'all') {
+            query.familyGroup = familyGroup;
+        }
+        
+        if (search && search.trim()) {
+            const searchRegex = new RegExp(search.trim(), 'i');
             query.$or = [
-                { name: { $regex: search, $options: 'i' } },
-                { tel: { $regex: search, $options: 'i' } }
+                { name: searchRegex },
+                { tel: { $regex: search.trim().replace(/\D/g, ''), $options: 'i' } }
             ];
+        }
+        
+        // Date range filtering
+        if (dateFrom || dateTo) {
+            query.createdAt = {};
+            if (dateFrom) query.createdAt.$gte = new Date(dateFrom);
+            if (dateTo) {
+                const endDate = new Date(dateTo);
+                endDate.setHours(23, 59, 59, 999);
+                query.createdAt.$lte = endDate;
+            }
         }
         
         // Execute query with pagination
         const patients = await Patient.find(query)
             .sort(sort)
-            .limit(limit * 1)
-            .skip((page - 1) * limit)
-            .lean(); // Use lean() for better performance
+            .limit(parseInt(limit))
+            .skip((parseInt(page) - 1) * parseInt(limit))
+            .lean();
         
         const total = await Patient.countDocuments(query);
         
-        console.log(`Found ${patients.length} patients (${total} total)`);
+        console.log(`✅ Found ${patients.length} patients (${total} total)`);
         
-        res.json({
-            patients,
-            pagination: {
-                currentPage: parseInt(page),
-                totalPages: Math.ceil(total / limit),
-                totalPatients: total,
-                hasNext: page * limit < total,
-                hasPrev: page > 1
-            }
-        });
-        
-        // For backward compatibility, if no pagination params are provided, return just the patients array
+        // Return patients array for backward compatibility if no pagination requested
         if (!req.query.page && !req.query.limit) {
-            res.json(patients);
+            return res.json(patients);
         }
         
+        res.json({
+            success: true,
+            data: patients,
+            pagination: {
+                currentPage: parseInt(page),
+                totalPages: Math.ceil(total / parseInt(limit)),
+                totalPatients: total,
+                hasNext: parseInt(page) * parseInt(limit) < total,
+                hasPrev: parseInt(page) > 1,
+                limit: parseInt(limit)
+            },
+            query: query,
+            filters: { status, service, services, familyGroup, search, includeDeleted }
+        });
+        
     } catch (error) {
-        handleError(res, error, 'Failed to retrieve patients');
+        handleError(res, error, 'Failed to retrieve patients', req);
     }
 });
 
-// 3. Create New Patient - Enhanced with validation
+// 3. Create New Patient - Production Ready
 app.post('/api/patients', async (req, res) => {
     try {
-        console.log('➕ Creating patient:', req.body.name);
+        console.log('➕ Creating new patient:', req.body.name);
         
-        // Sanitize input data
+        // Sanitize and validate input
+        const inputData = sanitizeInput(req.body);
+        
         const patientData = {
-            name: req.body.name?.trim(),
-            age: req.body.age?.toString().trim(),
-            sex: req.body.sex,
-            occupation: req.body.occupation?.trim() || '',
-            tel: req.body.tel?.trim(),
-            familyGroup: req.body.familyGroup,
+            name: inputData.name,
+            age: inputData.age,
+            sex: inputData.sex,
+            occupation: inputData.occupation || '',
+            tel: inputData.tel,
+            familyGroup: inputData.familyGroup,
             status: 'registered'
         };
         
-        // Handle services - support both single service and multiple services
-        if (req.body.services && Array.isArray(req.body.services) && req.body.services.length > 0) {
-            patientData.services = req.body.services;
-        } else if (req.body.service) {
-            patientData.services = [req.body.service];
+        // Handle services - prioritize services array
+        if (inputData.services && Array.isArray(inputData.services) && inputData.services.length > 0) {
+            patientData.services = inputData.services.filter(s => s && s.trim());
+        } else if (inputData.service && inputData.service.trim()) {
+            patientData.services = [inputData.service.trim()];
         } else {
             return res.status(400).json({ 
-                error: 'Service required', 
+                success: false,
+                error: 'Services required', 
                 message: 'At least one service must be specified' 
             });
         }
         
-        // Check for duplicate phone number more explicitly
-        const existingPatient = await Patient.findOne({ tel: patientData.tel });
-        if (existingPatient) {
-            return res.status(400).json({ 
-                error: 'Duplicate phone number', 
-                message: `A patient with phone number ${patientData.tel} already exists` 
+        // Validate required fields
+        const requiredFields = ['name', 'age', 'sex', 'tel', 'familyGroup'];
+        const missingFields = requiredFields.filter(field => !patientData[field]);
+        
+        if (missingFields.length > 0) {
+            return res.status(400).json({
+                success: false,
+                error: 'Missing required fields',
+                message: `Please provide: ${missingFields.join(', ')}`,
+                missingFields
             });
         }
         
+        // Check for duplicate phone number
+        const existingPatient = await Patient.findOne({ 
+            tel: patientData.tel,
+            isDeleted: { $ne: true }
+        });
+        
+        if (existingPatient) {
+            return res.status(409).json({ 
+                success: false,
+                error: 'Duplicate phone number', 
+                message: `A patient with phone number ${patientData.tel} already exists`,
+                existingPatient: {
+                    id: existingPatient._id,
+                    name: existingPatient.name,
+                    registrationDate: existingPatient.registrationDate
+                }
+            });
+        }
+        
+        // Create and save patient
         const patient = new Patient(patientData);
         await patient.save();
         
         // Add creation history
-        await addModificationHistory(patient._id, 'created', patientData);
+        await addModificationHistory(patient._id, 'created', patientData, req);
         
-        console.log('✅ Patient created:', patient.name);
-        res.status(201).json(patient);
+        console.log('✅ Patient created successfully:', {
+            id: patient._id,
+            name: patient.name,
+            tel: patient.tel
+        });
+        
+        res.status(201).json({
+            success: true,
+            message: 'Patient registered successfully',
+            data: patient
+        });
         
     } catch (error) {
-        handleError(res, error, 'Failed to create patient');
+        handleError(res, error, 'Failed to create patient', req);
     }
 });
 
-// 4. Update Patient - Enhanced with change tracking
+// 4. Update Patient - Enhanced
 app.put('/api/patients', async (req, res) => {
     try {
         const { id, ...updateData } = req.body;
-        console.log('✏️ Updating patient ID:', id);
+        console.log('✏️ Updating patient:', id);
         
         if (!id) {
-            return res.status(400).json({ error: 'Patient ID is required' });
+            return res.status(400).json({ 
+                success: false,
+                error: 'Patient ID is required' 
+            });
         }
         
         if (!validateObjectId(id)) {
-            return res.status(400).json({ error: 'Invalid patient ID format' });
+            return res.status(400).json({ 
+                success: false,
+                error: 'Invalid patient ID format' 
+            });
         }
         
-        // Get current patient data for change tracking
+        // Get current patient for comparison
         const currentPatient = await Patient.findById(id);
         if (!currentPatient) {
-            return res.status(404).json({ error: 'Patient not found' });
+            return res.status(404).json({ 
+                success: false,
+                error: 'Patient not found' 
+            });
+        }
+        
+        if (currentPatient.isDeleted) {
+            return res.status(410).json({
+                success: false,
+                error: 'Patient has been deleted',
+                message: 'Cannot update a deleted patient'
+            });
         }
         
         // Sanitize update data
-        const sanitizedData = {};
-        Object.keys(updateData).forEach(key => {
-            if (updateData[key] !== undefined && updateData[key] !== null) {
-                if (typeof updateData[key] === 'string') {
-                    sanitizedData[key] = updateData[key].trim();
-                } else {
-                    sanitizedData[key] = updateData[key];
-                }
-            }
-        });
+        const sanitizedData = sanitizeInput(updateData);
+        
+        // Handle services update
+        if (sanitizedData.services && Array.isArray(sanitizedData.services) && sanitizedData.services.length > 0) {
+            sanitizedData.services = sanitizedData.services.filter(s => s && s.trim());
+            sanitizedData.service = undefined;
+        } else if (sanitizedData.service && sanitizedData.service.trim()) {
+            sanitizedData.services = [sanitizedData.service.trim()];
+            sanitizedData.service = undefined;
+        }
         
         // Add completion timestamp if completing
         if (sanitizedData.status === 'completed' && currentPatient.status !== 'completed') {
-            sanitizedData.completionDate = new Date().toLocaleDateString();
-            sanitizedData.completionTime = new Date().toLocaleTimeString();
+            sanitizedData.completionDate = new Date().toLocaleDateString('en-GB');
+            sanitizedData.completionTime = new Date().toLocaleTimeString('en-GB');
         }
         
         // Check for phone number duplicates if tel is being updated
         if (sanitizedData.tel && sanitizedData.tel !== currentPatient.tel) {
             const existingPatient = await Patient.findOne({ 
                 tel: sanitizedData.tel,
-                _id: { $ne: id }
+                _id: { $ne: id },
+                isDeleted: { $ne: true }
             });
+            
             if (existingPatient) {
-                return res.status(400).json({ 
+                return res.status(409).json({ 
+                    success: false,
                     error: 'Duplicate phone number', 
-                    message: `Another patient with phone number ${sanitizedData.tel} already exists` 
+                    message: `Another patient with phone number ${sanitizedData.tel} already exists`
                 });
             }
         }
         
+        // Update patient
         const patient = await Patient.findByIdAndUpdate(
             id, 
             sanitizedData, 
@@ -499,7 +739,7 @@ app.put('/api/patients', async (req, res) => {
         // Track changes
         const changes = {};
         Object.keys(sanitizedData).forEach(key => {
-            if (currentPatient[key] !== sanitizedData[key]) {
+            if (JSON.stringify(currentPatient[key]) !== JSON.stringify(sanitizedData[key])) {
                 changes[key] = {
                     from: currentPatient[key],
                     to: sanitizedData[key]
@@ -508,84 +748,132 @@ app.put('/api/patients', async (req, res) => {
         });
         
         const action = sanitizedData.status === 'completed' ? 'completed' : 'updated';
-        await addModificationHistory(patient._id, action, changes);
+        await addModificationHistory(patient._id, action, changes, req);
         
-        console.log('✅ Patient updated:', patient.name);
-        res.json(patient);
+        console.log('✅ Patient updated successfully:', patient.name);
+        
+        res.json({ 
+            success: true,
+            message: 'Patient updated successfully',
+            data: patient,
+            changes: Object.keys(changes)
+        });
         
     } catch (error) {
-        handleError(res, error, 'Failed to update patient');
+        handleError(res, error, 'Failed to update patient', req);
     }
 });
 
-// 5. Get Single Patient - Enhanced
+// 5. Get Single Patient
 app.get('/api/patients/:id', async (req, res) => {
     try {
         const { id } = req.params;
-        console.log('👤 Getting patient ID:', id);
+        const { includeHistory = 'false' } = req.query;
+        
+        console.log('👤 Getting patient:', id);
         
         if (!validateObjectId(id)) {
-            return res.status(400).json({ error: 'Invalid patient ID format' });
+            return res.status(400).json({ 
+                success: false,
+                error: 'Invalid patient ID format' 
+            });
         }
         
-        const patient = await Patient.findById(id);
+        let query = Patient.findById(id);
+        
+        // Optionally exclude modification history for performance
+        if (includeHistory !== 'true') {
+            query = query.select('-modificationHistory');
+        }
+        
+        const patient = await query;
         
         if (!patient) {
-            return res.status(404).json({ error: 'Patient not found' });
+            return res.status(404).json({ 
+                success: false,
+                error: 'Patient not found' 
+            });
         }
         
-        res.json(patient);
+        res.json({ 
+            success: true,
+            data: patient 
+        });
         
     } catch (error) {
-        handleError(res, error, 'Failed to retrieve patient');
+        handleError(res, error, 'Failed to retrieve patient', req);
     }
 });
 
-// 5b. Get Single Patient (POST method for backward compatibility)
+// 5b. Get Single Patient (POST - backward compatibility)
 app.post('/api/patient', async (req, res) => {
     try {
         const { id } = req.body;
-        console.log('👤 Getting patient ID:', id);
         
         if (!id) {
-            return res.status(400).json({ error: 'Patient ID is required' });
+            return res.status(400).json({ 
+                success: false,
+                error: 'Patient ID is required' 
+            });
         }
         
         if (!validateObjectId(id)) {
-            return res.status(400).json({ error: 'Invalid patient ID format' });
+            return res.status(400).json({ 
+                success: false,
+                error: 'Invalid patient ID format' 
+            });
         }
         
-        const patient = await Patient.findById(id);
+        const patient = await Patient.findById(id).select('-modificationHistory');
         
         if (!patient) {
-            return res.status(404).json({ error: 'Patient not found' });
+            return res.status(404).json({ 
+                success: false,
+                error: 'Patient not found' 
+            });
         }
         
+        // Return patient directly for backward compatibility
         res.json(patient);
         
     } catch (error) {
-        handleError(res, error, 'Failed to retrieve patient');
+        handleError(res, error, 'Failed to retrieve patient', req);
     }
 });
 
-// 6. Get Statistics - Enhanced
+// 6. Enhanced Statistics
 app.get('/api/stats', async (req, res) => {
     try {
-        console.log('📊 Getting statistics');
+        console.log('📊 Generating comprehensive statistics');
+        
+        const { period = '30' } = req.query;
+        const daysBack = parseInt(period);
+        const periodStart = new Date(Date.now() - daysBack * 24 * 60 * 60 * 1000);
         
         const [
             totalPatients,
+            activePatients,
             pendingTests,
             completedRecords,
+            deletedPatients,
+            recentRegistrations,
             serviceStats,
             familyGroupStats,
-            recentRegistrations
+            dailyRegistrations,
+            completionTrend
         ] = await Promise.all([
             Patient.countDocuments(),
-            Patient.countDocuments({ status: 'registered' }),
-            Patient.countDocuments({ status: 'completed' }),
-            // Enhanced service statistics to handle both service and services fields
+            Patient.countDocuments({ isDeleted: { $ne: true } }),
+            Patient.countDocuments({ status: 'registered', isDeleted: { $ne: true } }),
+            Patient.countDocuments({ status: 'completed', isDeleted: { $ne: true } }),
+            Patient.countDocuments({ isDeleted: true }),
+            Patient.countDocuments({
+                createdAt: { $gte: periodStart },
+                isDeleted: { $ne: true }
+            }),
+            // Enhanced service statistics
             Patient.aggregate([
+                { $match: { isDeleted: { $ne: true } } },
                 {
                     $project: {
                         allServices: {
@@ -602,22 +890,58 @@ app.get('/api/stats', async (req, res) => {
                 { $sort: { count: -1 } }
             ]),
             Patient.aggregate([
+                { $match: { isDeleted: { $ne: true } } },
                 { $group: { _id: '$familyGroup', count: { $sum: 1 } } },
                 { $sort: { count: -1 } }
             ]),
-            Patient.countDocuments({
-                createdAt: { $gte: new Date(Date.now() - 7 * 24 * 60 * 60 * 1000) }
-            })
+            // Daily registrations trend
+            Patient.aggregate([
+                { 
+                    $match: { 
+                        createdAt: { $gte: periodStart },
+                        isDeleted: { $ne: true }
+                    }
+                },
+                {
+                    $group: {
+                        _id: { $dateToString: { format: '%Y-%m-%d', date: '$createdAt' } },
+                        count: { $sum: 1 }
+                    }
+                },
+                { $sort: { _id: 1 } }
+            ]),
+            // Completion trend
+            Patient.aggregate([
+                { 
+                    $match: { 
+                        status: 'completed',
+                        completionDate: { $exists: true },
+                        isDeleted: { $ne: true }
+                    }
+                },
+                {
+                    $group: {
+                        _id: '$completionDate',
+                        count: { $sum: 1 }
+                    }
+                },
+                { $sort: { _id: 1 } },
+                { $limit: 30 }
+            ])
         ]);
         
-        const completionRate = totalPatients > 0 ? Math.round((completedRecords / totalPatients) * 100) : 0;
+        const completionRate = activePatients > 0 ? Math.round((completedRecords / activePatients) * 100) : 0;
         
         const stats = {
-            totalPatients,
-            pendingTests,
-            completedRecords,
-            completionRate,
-            recentRegistrations,
+            overview: {
+                totalPatients,
+                activePatients,
+                pendingTests,
+                completedRecords,
+                deletedPatients,
+                completionRate,
+                recentRegistrations
+            },
             serviceDistribution: serviceStats.reduce((acc, item) => {
                 acc[item._id] = item.count;
                 return acc;
@@ -625,28 +949,52 @@ app.get('/api/stats', async (req, res) => {
             familyGroupDistribution: familyGroupStats.reduce((acc, item) => {
                 acc[item._id] = item.count;
                 return acc;
-            }, {})
+            }, {}),
+            trends: {
+                dailyRegistrations: dailyRegistrations.reduce((acc, item) => {
+                    acc[item._id] = item.count;
+                    return acc;
+                }, {}),
+                completionTrend: completionTrend.reduce((acc, item) => {
+                    acc[item._id] = item.count;
+                    return acc;
+                }, {})
+            },
+            period: {
+                days: daysBack,
+                startDate: periodStart.toISOString(),
+                endDate: new Date().toISOString()
+            }
         };
         
-        console.log('✅ Statistics:', stats);
-        res.json(stats);
+        console.log('✅ Statistics generated successfully');
+        
+        res.json({
+            success: true,
+            data: stats,
+            generatedAt: new Date().toISOString()
+        });
         
     } catch (error) {
-        handleError(res, error, 'Failed to retrieve statistics');
+        handleError(res, error, 'Failed to retrieve statistics', req);
     }
 });
 
-// 7. Search Patients - Enhanced
+// 7. Enhanced Search
 app.post('/api/search', async (req, res) => {
     try {
-        const { query, filters = {} } = req.body;
-        console.log('🔍 Searching for:', query);
+        const { query, filters = {}, limit = 50 } = req.body;
+        console.log('🔍 Searching for:', query, 'with filters:', filters);
         
         if (!query || query.trim().length === 0) {
-            return res.status(400).json({ error: 'Search query is required' });
+            return res.status(400).json({ 
+                success: false,
+                error: 'Search query is required' 
+            });
         }
         
         const searchQuery = {
+            isDeleted: { $ne: true },
             $or: [
                 { name: { $regex: query.trim(), $options: 'i' } },
                 { tel: { $regex: query.trim().replace(/\D/g, ''), $options: 'i' } }
@@ -654,9 +1002,11 @@ app.post('/api/search', async (req, res) => {
         };
         
         // Add filters
-        if (filters.status) searchQuery.status = filters.status;
+        if (filters.status && filters.status !== 'all') {
+            searchQuery.status = filters.status;
+        }
+        
         if (filters.service) {
-            // Support both single service and services array
             searchQuery.$and = searchQuery.$and || [];
             searchQuery.$and.push({
                 $or: [
@@ -665,42 +1015,72 @@ app.post('/api/search', async (req, res) => {
                 ]
             });
         }
-        if (filters.familyGroup) searchQuery.familyGroup = filters.familyGroup;
+        
+        if (filters.familyGroup && filters.familyGroup !== 'all') {
+            searchQuery.familyGroup = filters.familyGroup;
+        }
+        
+        if (filters.dateFrom || filters.dateTo) {
+            searchQuery.createdAt = {};
+            if (filters.dateFrom) searchQuery.createdAt.$gte = new Date(filters.dateFrom);
+            if (filters.dateTo) {
+                const endDate = new Date(filters.dateTo);
+                endDate.setHours(23, 59, 59, 999);
+                searchQuery.createdAt.$lte = endDate;
+            }
+        }
         
         const patients = await Patient.find(searchQuery)
             .sort({ createdAt: -1 })
-            .limit(50); // Limit search results
+            .limit(parseInt(limit))
+            .select('-modificationHistory');
         
-        console.log(`Found ${patients.length} patients for "${query}"`);
-        res.json(patients);
+        console.log(`✅ Found ${patients.length} patients for "${query}"`);
+        
+        res.json({
+            success: true,
+            data: patients,
+            query: query,
+            filters: filters,
+            count: patients.length
+        });
         
     } catch (error) {
-        handleError(res, error, 'Search failed');
+        handleError(res, error, 'Search failed', req);
     }
 });
 
-// 8. Delete Patient - Enhanced with soft delete option
+// 8. Delete Patient - Enhanced with soft delete
 app.delete('/api/patients/:id', async (req, res) => {
     try {
         const { id } = req.params;
-        const { permanent = false } = req.query;
-        console.log('🗑️ Deleting patient ID:', id);
+        const { permanent = 'false' } = req.query;
+        
+        console.log('🗑️ Deleting patient:', id, 'permanent:', permanent);
         
         if (!validateObjectId(id)) {
-            return res.status(400).json({ error: 'Invalid patient ID format' });
+            return res.status(400).json({ 
+                success: false,
+                error: 'Invalid patient ID format' 
+            });
         }
         
         const patient = await Patient.findById(id);
         if (!patient) {
-            return res.status(404).json({ error: 'Patient not found' });
+            return res.status(404).json({ 
+                success: false,
+                error: 'Patient not found' 
+            });
         }
         
         if (permanent === 'true') {
             // Permanent deletion
             await Patient.findByIdAndDelete(id);
             console.log('✅ Patient permanently deleted:', patient.name);
-            res.json({ 
-                message: 'Patient permanently deleted successfully',
+            
+            res.json({
+                success: true,
+                message: 'Patient permanently deleted',
                 deletedPatient: {
                     id: patient._id,
                     name: patient.name,
@@ -708,57 +1088,62 @@ app.delete('/api/patients/:id', async (req, res) => {
                 }
             });
         } else {
-            // Soft delete - mark as deleted
-            const deletedPatient = await Patient.findByIdAndUpdate(
-                id,
-                { 
-                    status: 'deleted',
-                    deletedAt: new Date(),
-                    lastModified: new Date()
-                },
-                { new: true }
-            );
-            
-            await addModificationHistory(id, 'deleted', { deletedAt: new Date() });
+            // Soft delete
+            await patient.softDelete();
+            await addModificationHistory(id, 'deleted', { deletedAt: new Date() }, req);
             
             console.log('✅ Patient soft deleted:', patient.name);
-            res.json({ 
+            
+            res.json({
+                success: true,
                 message: 'Patient deleted successfully',
                 deletedPatient: {
-                    id: deletedPatient._id,
-                    name: deletedPatient.name,
-                    tel: deletedPatient.tel
+                    id: patient._id,
+                    name: patient.name,
+                    tel: patient.tel
                 }
             });
         }
         
     } catch (error) {
-        handleError(res, error, 'Failed to delete patient');
+        handleError(res, error, 'Failed to delete patient', req);
     }
 });
 
-// 8b. Delete Patient (POST method for backward compatibility)
+// 8b. Delete Patient (POST - backward compatibility)
 app.post('/api/delete', async (req, res) => {
     try {
         const { id } = req.body;
-        console.log('🗑️ Deleting patient ID:', id);
+        console.log('🗑️ Deleting patient via POST:', id);
         
         if (!id) {
-            return res.status(400).json({ error: 'Patient ID is required' });
+            return res.status(400).json({ 
+                success: false,
+                error: 'Patient ID is required' 
+            });
         }
         
         if (!validateObjectId(id)) {
-            return res.status(400).json({ error: 'Invalid patient ID format' });
+            return res.status(400).json({ 
+                success: false,
+                error: 'Invalid patient ID format' 
+            });
         }
         
         const patient = await Patient.findById(id);
         if (!patient) {
-            return res.status(404).json({ error: 'Patient not found' });
+            return res.status(404).json({ 
+                success: false,
+                error: 'Patient not found' 
+            });
         }
         
+        // Permanent delete for backward compatibility
         await Patient.findByIdAndDelete(id);
         
         console.log('✅ Patient deleted:', patient.name);
+        
+        // Return format expected by frontend
         res.json({ 
             message: 'Patient deleted successfully',
             deletedPatient: {
@@ -769,156 +1154,459 @@ app.post('/api/delete', async (req, res) => {
         });
         
     } catch (error) {
-        handleError(res, error, 'Failed to delete patient');
+        handleError(res, error, 'Failed to delete patient', req);
     }
 });
 
-// 9. Bulk Operations
+// 9. Restore Deleted Patient
+app.post('/api/patients/:id/restore', async (req, res) => {
+    try {
+        const { id } = req.params;
+        console.log('♻️ Restoring patient:', id);
+        
+        if (!validateObjectId(id)) {
+            return res.status(400).json({ 
+                success: false,
+                error: 'Invalid patient ID format' 
+            });
+        }
+        
+        const patient = await Patient.findById(id);
+        if (!patient) {
+            return res.status(404).json({ 
+                success: false,
+                error: 'Patient not found' 
+            });
+        }
+        
+        if (!patient.isDeleted) {
+            return res.status(400).json({
+                success: false,
+                error: 'Patient is not deleted',
+                message: 'Cannot restore a patient that is not deleted'
+            });
+        }
+        
+        await patient.restore();
+        await addModificationHistory(id, 'updated', { restored: true }, req);
+        
+        console.log('✅ Patient restored:', patient.name);
+        
+        res.json({
+            success: true,
+            message: 'Patient restored successfully',
+            data: patient
+        });
+        
+    } catch (error) {
+        handleError(res, error, 'Failed to restore patient', req);
+    }
+});
+
+// 10. Bulk Operations - Enhanced
 app.post('/api/patients/bulk', async (req, res) => {
     try {
-        const { operation, patientIds, updateData } = req.body;
+        const { operation, patientIds, updateData, filters } = req.body;
         console.log(`🔄 Bulk ${operation} for ${patientIds?.length || 0} patients`);
         
-        if (!operation || !patientIds || !Array.isArray(patientIds)) {
-            return res.status(400).json({ error: 'Invalid bulk operation request' });
+        if (!operation) {
+            return res.status(400).json({ 
+                success: false,
+                error: 'Operation type is required' 
+            });
+        }
+        
+        let targetIds = patientIds;
+        
+        // If no specific IDs provided, use filters to find patients
+        if (!targetIds && filters) {
+            const query = { isDeleted: { $ne: true } };
+            
+            if (filters.status) query.status = filters.status;
+            if (filters.familyGroup) query.familyGroup = filters.familyGroup;
+            if (filters.service) {
+                query.$or = [
+                    { service: filters.service },
+                    { services: filters.service }
+                ];
+            }
+            
+            const patients = await Patient.find(query).select('_id');
+            targetIds = patients.map(p => p._id.toString());
+        }
+        
+        if (!targetIds || !Array.isArray(targetIds) || targetIds.length === 0) {
+            return res.status(400).json({ 
+                success: false,
+                error: 'No patients specified for bulk operation' 
+            });
         }
         
         // Validate all IDs
-        const invalidIds = patientIds.filter(id => !validateObjectId(id));
+        const invalidIds = targetIds.filter(id => !validateObjectId(id));
         if (invalidIds.length > 0) {
             return res.status(400).json({ 
+                success: false,
                 error: 'Invalid patient IDs', 
                 invalidIds 
             });
         }
         
         let result;
+        let message;
         
         switch (operation) {
             case 'delete':
-                result = await Patient.deleteMany({ _id: { $in: patientIds } });
+                // Soft delete
+                result = await Patient.updateMany(
+                    { _id: { $in: targetIds } },
+                    { 
+                        isDeleted: true,
+                        deletedAt: new Date(),
+                        status: 'deleted',
+                        lastModified: new Date()
+                    }
+                );
+                message = `${result.modifiedCount} patients deleted successfully`;
+                break;
+                
+            case 'permanentDelete':
+                result = await Patient.deleteMany({ _id: { $in: targetIds } });
+                message = `${result.deletedCount} patients permanently deleted`;
+                break;
+                
+            case 'restore':
+                result = await Patient.updateMany(
+                    { _id: { $in: targetIds }, isDeleted: true },
+                    { 
+                        isDeleted: false,
+                        $unset: { deletedAt: 1 },
+                        status: 'registered',
+                        lastModified: new Date()
+                    }
+                );
+                message = `${result.modifiedCount} patients restored successfully`;
                 break;
                 
             case 'update':
                 if (!updateData) {
-                    return res.status(400).json({ error: 'Update data is required for bulk update' });
+                    return res.status(400).json({ 
+                        success: false,
+                        error: 'Update data is required for bulk update' 
+                    });
                 }
+                
+                const sanitizedUpdateData = sanitizeInput(updateData);
+                sanitizedUpdateData.lastModified = new Date();
+                
                 result = await Patient.updateMany(
-                    { _id: { $in: patientIds } },
-                    { ...updateData, lastModified: new Date() }
+                    { _id: { $in: targetIds }, isDeleted: { $ne: true } },
+                    sanitizedUpdateData
                 );
+                message = `${result.modifiedCount} patients updated successfully`;
                 break;
                 
             case 'complete':
                 result = await Patient.updateMany(
-                    { _id: { $in: patientIds } },
+                    { _id: { $in: targetIds }, status: 'registered', isDeleted: { $ne: true } },
                     { 
                         status: 'completed',
-                        completionDate: new Date().toLocaleDateString(),
-                        completionTime: new Date().toLocaleTimeString(),
+                        completionDate: new Date().toLocaleDateString('en-GB'),
+                        completionTime: new Date().toLocaleTimeString('en-GB'),
                         lastModified: new Date()
                     }
                 );
+                message = `${result.modifiedCount} patients marked as completed`;
                 break;
                 
             default:
-                return res.status(400).json({ error: 'Invalid operation type' });
+                return res.status(400).json({ 
+                    success: false,
+                    error: 'Invalid operation type',
+                    validOperations: ['delete', 'permanentDelete', 'restore', 'update', 'complete']
+                });
         }
         
         console.log(`✅ Bulk ${operation} completed:`, result);
+        
         res.json({ 
-            message: `Bulk ${operation} completed successfully`,
+            success: true,
+            message,
+            operation,
             result,
-            affectedCount: result.modifiedCount || result.deletedCount || 0
+            affectedCount: result.modifiedCount || result.deletedCount || 0,
+            targetCount: targetIds.length
         });
         
     } catch (error) {
-        handleError(res, error, 'Bulk operation failed');
+        handleError(res, error, 'Bulk operation failed', req);
     }
 });
 
-// 10. Export Data
+// 11. Export Data - Enhanced
 app.get('/api/export', async (req, res) => {
     try {
-        const { format = 'json', status, service, familyGroup } = req.query;
+        const { 
+            format = 'json', 
+            status, 
+            service, 
+            familyGroup, 
+            includeDeleted = 'false',
+            dateFrom,
+            dateTo
+        } = req.query;
+        
         console.log('📤 Exporting data in format:', format);
         
         // Build query
         let query = {};
-        if (status) query.status = status;
+        
+        if (includeDeleted !== 'true') {
+            query.isDeleted = { $ne: true };
+        }
+        
+        if (status && status !== 'all') query.status = status;
+        
         if (service) {
-            // Support both single service and services array
             query.$or = [
                 { service: service },
                 { services: service }
             ];
         }
-        if (familyGroup) query.familyGroup = familyGroup;
         
-        const patients = await Patient.find(query).sort({ createdAt: -1 });
+        if (familyGroup && familyGroup !== 'all') query.familyGroup = familyGroup;
+        
+        // Date range filtering
+        if (dateFrom || dateTo) {
+            query.createdAt = {};
+            if (dateFrom) query.createdAt.$gte = new Date(dateFrom);
+            if (dateTo) {
+                const endDate = new Date(dateTo);
+                endDate.setHours(23, 59, 59, 999);
+                query.createdAt.$lte = endDate;
+            }
+        }
+        
+        const patients = await Patient.find(query)
+            .sort({ createdAt: -1 })
+            .select('-modificationHistory'); // Exclude history for export
         
         const exportData = {
-            exportDate: new Date().toISOString(),
-            exportedBy: 'Health Campaign System',
-            totalRecords: patients.length,
-            filters: { status, service, familyGroup },
+            exportInfo: {
+                exportDate: new Date().toISOString(),
+                exportedBy: 'Health Campaign System v3.0',
+                totalRecords: patients.length,
+                format: format,
+                filters: { status, service, familyGroup, includeDeleted, dateFrom, dateTo }
+            },
             patients: patients
         };
         
+        const timestamp = new Date().toISOString().split('T')[0];
+        
         if (format === 'csv') {
-            // Convert to CSV format
             const csv = convertToCSV(patients);
-            res.setHeader('Content-Type', 'text/csv');
-            res.setHeader('Content-Disposition', `attachment; filename=patients_${Date.now()}.csv`);
-            res.send(csv);
+            res.setHeader('Content-Type', 'text/csv; charset=utf-8');
+            res.setHeader('Content-Disposition', `attachment; filename="health_campaign_patients_${timestamp}.csv"`);
+            res.send('\ufeff' + csv); // Add BOM for proper Excel encoding
         } else {
-            // Default JSON format
-            res.setHeader('Content-Type', 'application/json');
-            res.setHeader('Content-Disposition', `attachment; filename=patients_${Date.now()}.json`);
+            res.setHeader('Content-Type', 'application/json; charset=utf-8');
+            res.setHeader('Content-Disposition', `attachment; filename="health_campaign_patients_${timestamp}.json"`);
             res.json(exportData);
         }
         
+        console.log(`✅ Exported ${patients.length} patients as ${format.toUpperCase()}`);
+        
     } catch (error) {
-        handleError(res, error, 'Export failed');
+        handleError(res, error, 'Export failed', req);
     }
 });
 
-// CSV conversion helper
+// Enhanced CSV conversion with better formatting
 function convertToCSV(patients) {
-    if (!patients.length) return '';
+    if (!patients.length) return 'No data available for export';
     
     const headers = [
-        'Name', 'Age', 'Sex', 'Occupation', 'Phone', 'Family Group', 
-        'Services', 'Status', 'Registration Date', 'Diagnosis', 
-        'Lab Tests', 'Treatment Plan', 'Completion Date'
+        'ID', 'Name', 'Age', 'Sex', 'Occupation', 'Phone', 'Family Group', 
+        'Services', 'Status', 'Registration Date', 'Registration Time',
+        'Diagnosis', 'Lab Tests', 'Treatment Plan', 'Completion Date', 'Completion Time',
+        'Created At', 'Last Modified'
     ];
+    
+    const escapeCsvField = (field) => {
+        if (field === null || field === undefined) return '';
+        const str = String(field);
+        if (str.includes(',') || str.includes('"') || str.includes('\n')) {
+            return `"${str.replace(/"/g, '""')}"`;
+        }
+        return str;
+    };
     
     const csvContent = [
         headers.join(','),
         ...patients.map(patient => [
-            `"${patient.name}"`,
-            patient.age,
-            patient.sex,
-            `"${patient.occupation || ''}"`,
-            patient.tel,
-            patient.familyGroup,
-            `"${patient.services ? patient.services.join('; ') : (patient.service || '')}"`,
-            patient.status,
-            patient.registrationDate,
-            `"${patient.diagnosis || ''}"`,
-            `"${patient.labTests?.join('; ') || ''}"`,
-            `"${patient.treatmentPlan || ''}"`,
-            patient.completionDate || ''
+            escapeCsvField(patient._id),
+            escapeCsvField(patient.name),
+            escapeCsvField(patient.age),
+            escapeCsvField(patient.sex),
+            escapeCsvField(patient.occupation || ''),
+            escapeCsvField(patient.tel),
+            escapeCsvField(patient.familyGroup),
+            escapeCsvField(patient.services ? patient.services.join('; ') : (patient.service || '')),
+            escapeCsvField(patient.status),
+            escapeCsvField(patient.registrationDate),
+            escapeCsvField(patient.registrationTime || ''),
+            escapeCsvField(patient.diagnosis || ''),
+            escapeCsvField(patient.labTests?.join('; ') || ''),
+            escapeCsvField(patient.treatmentPlan || ''),
+            escapeCsvField(patient.completionDate || ''),
+            escapeCsvField(patient.completionTime || ''),
+            escapeCsvField(patient.createdAt ? new Date(patient.createdAt).toLocaleString() : ''),
+            escapeCsvField(patient.lastModified ? new Date(patient.lastModified).toLocaleString() : '')
         ].join(','))
     ].join('\n');
     
     return csvContent;
 }
 
+// 12. Get Deleted Patients
+app.get('/api/patients/deleted', async (req, res) => {
+    try {
+        console.log('🗑️ Getting deleted patients');
+        
+        const { page = 1, limit = 100 } = req.query;
+        
+        const deletedPatients = await Patient.find({ isDeleted: true })
+            .sort({ deletedAt: -1 })
+            .limit(parseInt(limit))
+            .skip((parseInt(page) - 1) * parseInt(limit))
+            .select('-modificationHistory');
+        
+        const total = await Patient.countDocuments({ isDeleted: true });
+        
+        res.json({
+            success: true,
+            data: deletedPatients,
+            pagination: {
+                currentPage: parseInt(page),
+                totalPages: Math.ceil(total / parseInt(limit)),
+                totalPatients: total,
+                hasNext: parseInt(page) * parseInt(limit) < total,
+                hasPrev: parseInt(page) > 1
+            }
+        });
+        
+    } catch (error) {
+        handleError(res, error, 'Failed to retrieve deleted patients', req);
+    }
+});
+
+// 13. Patient History
+app.get('/api/patients/:id/history', async (req, res) => {
+    try {
+        const { id } = req.params;
+        console.log('📜 Getting patient history:', id);
+        
+        if (!validateObjectId(id)) {
+            return res.status(400).json({ 
+                success: false,
+                error: 'Invalid patient ID format' 
+            });
+        }
+        
+        const patient = await Patient.findById(id).select('name modificationHistory');
+        
+        if (!patient) {
+            return res.status(404).json({ 
+                success: false,
+                error: 'Patient not found' 
+            });
+        }
+        
+        res.json({
+            success: true,
+            data: {
+                patientName: patient.name,
+                history: patient.modificationHistory || []
+            }
+        });
+        
+    } catch (error) {
+        handleError(res, error, 'Failed to retrieve patient history', req);
+    }
+});
+
+// 14. System Information
+app.get('/api/system', async (req, res) => {
+    try {
+        const dbStats = await mongoose.connection.db.stats();
+        
+        res.json({
+            success: true,
+            system: {
+                version: '3.0.0',
+                environment: process.env.NODE_ENV || 'development',
+                nodeVersion: process.version,
+                uptime: process.uptime(),
+                memory: process.memoryUsage(),
+                database: {
+                    name: mongoose.connection.name,
+                    collections: dbStats.collections,
+                    dataSize: dbStats.dataSize,
+                    storageSize: dbStats.storageSize,
+                    indexes: dbStats.indexes
+                }
+            }
+        });
+    } catch (error) {
+        handleError(res, error, 'Failed to retrieve system information', req);
+    }
+});
+
 // ===== SERVE MAIN PAGE =====
 app.get('/', (req, res) => {
     console.log('🏠 Serving main page');
     res.sendFile(__dirname + '/index.html');
+});
+
+// API documentation endpoint
+app.get('/api', (req, res) => {
+    res.json({
+        name: 'Health Campaign Management API',
+        version: '3.0.0',
+        description: 'Comprehensive patient registration and medical records management system',
+        endpoints: {
+            'GET /api/health': 'System health check and statistics',
+            'GET /api/patients': 'Get all patients with filtering and pagination',
+            'POST /api/patients': 'Create new patient',
+            'PUT /api/patients': 'Update patient information',
+            'GET /api/patients/:id': 'Get single patient by ID',
+            'DELETE /api/patients/:id': 'Delete patient (soft delete by default)',
+            'POST /api/patients/:id/restore': 'Restore deleted patient',
+            'GET /api/patients/deleted': 'Get deleted patients',
+            'GET /api/patients/:id/history': 'Get patient modification history',
+            'GET /api/stats': 'Get comprehensive system statistics',
+            'POST /api/search': 'Search patients with advanced filters',
+            'POST /api/patients/bulk': 'Bulk operations on patients',
+            'GET /api/export': 'Export patient data (JSON/CSV)',
+            'GET /api/system': 'Get system information',
+            'POST /api/patient': 'Get single patient (legacy endpoint)',
+            'POST /api/delete': 'Delete patient (legacy endpoint)'
+        },
+        features: [
+            'Patient Registration & Management',
+            'Medical Records with Lab Tests',
+            'Multiple Services Support',
+            'Advanced Search & Filtering',
+            'Soft Delete with Restore',
+            'Bulk Operations',
+            'Data Export (JSON/CSV)',
+            'Comprehensive Audit Trail',
+            'Enhanced Validation',
+            'Performance Optimized',
+            'Production Ready'
+        ]
+    });
 });
 
 // ===== ERROR HANDLERS =====
@@ -927,80 +1615,86 @@ app.get('/', (req, res) => {
 app.use((req, res) => {
     console.log('❌ Route not found:', req.method, req.url);
     res.status(404).json({ 
+        success: false,
         error: 'Route not found',
         message: `Cannot ${req.method} ${req.url}`,
-        availableEndpoints: [
-            'GET /api/health',
-            'GET /api/patients',
-            'POST /api/patients',
-            'PUT /api/patients',
-            'DELETE /api/patients/:id',
-            'GET /api/patients/:id',
-            'GET /api/stats',
-            'POST /api/search',
-            'POST /api/patients/bulk',
-            'GET /api/export'
-        ]
+        suggestion: 'Visit /api for available endpoints'
     });
 });
 
 // Global error handler
 app.use((err, req, res, next) => {
-    console.error('💥 Unhandled error:', err);
+    console.error('💥 Unhandled error:', {
+        message: err.message,
+        stack: process.env.NODE_ENV === 'development' ? err.stack : undefined,
+        url: req.url,
+        method: req.method
+    });
+    
     res.status(500).json({
+        success: false,
         error: 'Internal server error',
         message: process.env.NODE_ENV === 'development' ? err.message : 'Something went wrong'
     });
 });
 
 // ===== GRACEFUL SHUTDOWN =====
-process.on('SIGTERM', async () => {
-    console.log('🛑 SIGTERM received, shutting down gracefully...');
+const gracefulShutdown = async (signal) => {
+    console.log(`🛑 ${signal} received, shutting down gracefully...`);
     try {
         await mongoose.connection.close();
         console.log('📦 MongoDB connection closed');
+        console.log('👋 Server shutdown complete');
         process.exit(0);
     } catch (error) {
         console.error('❌ Error during shutdown:', error);
         process.exit(1);
     }
+};
+
+process.on('SIGTERM', () => gracefulShutdown('SIGTERM'));
+process.on('SIGINT', () => gracefulShutdown('SIGINT'));
+
+// Handle uncaught exceptions
+process.on('uncaughtException', (error) => {
+    console.error('💥 Uncaught Exception:', error);
+    gracefulShutdown('uncaughtException');
 });
 
-process.on('SIGINT', async () => {
-    console.log('🛑 SIGINT received, shutting down gracefully...');
-    try {
-        await mongoose.connection.close();
-        console.log('📦 MongoDB connection closed');
-        process.exit(0);
-    } catch (error) {
-        console.error('❌ Error during shutdown:', error);
-        process.exit(1);
-    }
+process.on('unhandledRejection', (reason, promise) => {
+    console.error('💥 Unhandled Rejection at:', promise, 'reason:', reason);
+    gracefulShutdown('unhandledRejection');
 });
 
 // ===== START SERVER =====
-app.listen(PORT, () => {
-    console.log('🚀 ================================');
-    console.log(`🚀 Enhanced Health Campaign Server`);
-    console.log(`🚀 Version: 2.0.0`);
-    console.log(`🚀 Port: ${PORT}`);
-    console.log(`🚀 Environment: ${process.env.NODE_ENV || 'development'}`);
-    console.log(`🚀 Visit: http://localhost:${PORT}`);
-    console.log(`🚀 Health: http://localhost:${PORT}/api/health`);
-    console.log(`🚀 API Docs: http://localhost:${PORT}/api`);
-    console.log('🚀 ================================');
-    console.log('🚀 Features:');
-    console.log('🚀 ✅ Patient Registration');
-    console.log('🚀 ✅ Medical Records Management');
-    console.log('🚀 ✅ Multiple Lab Tests Support');
-    console.log('🚀 ✅ Edit Patient Information');
-    console.log('🚀 ✅ Delete Patients');
-    console.log('🚀 ✅ Advanced Search & Filtering');
-    console.log('🚀 ✅ Bulk Operations');
-    console.log('🚀 ✅ Data Export (JSON/CSV)');
-    console.log('🚀 ✅ Audit Trail');
-    console.log('🚀 ✅ Enhanced Validation');
-    console.log('🚀 ================================');
+const server = app.listen(PORT, () => {
+    console.log('🚀 ========================================');
+    console.log('🚀  Health Campaign Management System');
+    console.log('🚀  Production Ready Server v3.0.0');
+    console.log('🚀 ========================================');
+    console.log(`🚀  Port: ${PORT}`);
+    console.log(`🚀  Environment: ${process.env.NODE_ENV || 'development'}`);
+    console.log(`🚀  URL: http://localhost:${PORT}`);
+    console.log(`🚀  Health Check: http://localhost:${PORT}/api/health`);
+    console.log(`🚀  API Documentation: http://localhost:${PORT}/api`);
+    console.log('🚀 ========================================');
+    console.log('🚀  Features:');
+    console.log('🚀  ✅ Enhanced Patient Registration');
+    console.log('🚀  ✅ Advanced Medical Records Management');
+    console.log('🚀  ✅ Multiple Services & Lab Tests Support');
+    console.log('🚀  ✅ Full CRUD Operations');
+    console.log('🚀  ✅ Soft Delete with Restore');
+    console.log('🚀  ✅ Advanced Search & Filtering');
+    console.log('🚀  ✅ Bulk Operations');
+    console.log('🚀  ✅ Data Export (JSON/CSV)');
+    console.log('🚀  ✅ Comprehensive Audit Trail');
+    console.log('🚀  ✅ Enhanced Validation & Error Handling');
+    console.log('🚀  ✅ Performance Optimized with Indexes');
+    console.log('🚀  ✅ Production Ready Architecture');
+    console.log('🚀 ========================================');
 });
+
+// Set server timeout for large operations
+server.timeout = 300000; // 5 minutes
 
 module.exports = app;
