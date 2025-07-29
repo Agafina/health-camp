@@ -87,29 +87,25 @@ const patientSchema = new mongoose.Schema({
         }
     },
     service: { 
-        type: String, 
-        required: function() {
-            // service is required only if services array is not provided
-            return !this.services || this.services.length === 0;
-        },
+        type: String,
+        // Remove the required validation since we're using services array
         enum: {
-            values: ['General consultations', 'Eye con', 'Gynaecology', 'Cervical cancer screening'],
+            values: ['General consultations', 'Eye consultation', 'Gynaecology', 'Cervical cancer screening', 'Sexual and reproductive health'],
             message: 'Service must be one of the available options'
         }
     },
     services: {
         type: [String],
-        default: [],
+        required: [true, 'At least one service is required'],
         validate: {
             validator: function(services) {
                 if (!services || services.length === 0) {
-                    // If services array is empty, check if single service is provided
-                    return !!this.service;
+                    return false;
                 }
-                const validServices = ['General consultations', 'Eye con', 'Gynaecology', 'Cervical cancer screening'];
+                const validServices = ['General consultations', 'Eye consultation', 'Gynaecology', 'Cervical cancer screening', 'Sexual and reproductive health'];
                 return services.every(service => validServices.includes(service));
             },
-            message: 'Invalid service specified'
+            message: 'Invalid service specified. Valid services are: General consultations, Eye consultation, Gynaecology, Cervical cancer screening, Sexual and reproductive health'
         }
     },
     registrationDate: { 
