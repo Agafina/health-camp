@@ -1,4 +1,11 @@
-// Load environment variables
+// Handle services update - support both single service and multiple services
+        if (updateData.services && Array.isArray(updateData.services) && updateData.services.length > 0) {
+            sanitizedData.services = updateData.services;
+            sanitizedData.service = undefined; // Clear single service field
+        } else if (updateData.service) {
+            sanitizedData.services = [updateData.service];
+            sanitizedData.service = undefined; // Clear single service field
+        }// Load environment variables
 require('dotenv').config();
 
 const express = require('express');
@@ -81,10 +88,28 @@ const patientSchema = new mongoose.Schema({
     },
     service: { 
         type: String, 
-        required: [true, 'Service is required'],
+        required: function() {
+            // service is required only if services array is not provided
+            return !this.services || this.services.length === 0;
+        },
         enum: {
             values: ['General consultations', 'Eye con', 'Gynaecology', 'Cervical cancer screening'],
             message: 'Service must be one of the available options'
+        }
+    },
+    services: {
+        type: [String],
+        default: [],
+        validate: {
+            validator: function(services) {
+                if (!services || services.length === 0) {
+                    // If services array is empty, check if single service is provided
+                    return !!this.service;
+                }
+                const validServices = ['General consultations', 'Eye con', 'Gynaecology', 'Cervical cancer screening'];
+                return services.every(service => validServices.includes(service));
+            },
+            message: 'Invalid service specified'
         }
     },
     registrationDate: { 
@@ -168,12 +193,23 @@ patientSchema.index({ tel: 1 }, { unique: true });
 patientSchema.index({ name: 1 });
 patientSchema.index({ status: 1 });
 patientSchema.index({ service: 1 });
+patientSchema.index({ services: 1 });
 patientSchema.index({ familyGroup: 1 });
 patientSchema.index({ createdAt: -1 });
 
-// Pre-save middleware to update lastModified
+// Pre-save middleware to normalize services
 patientSchema.pre('save', function(next) {
     this.lastModified = new Date();
+    
+    // Handle service/services normalization
+    if (this.services && this.services.length > 0) {
+        // If services array is provided, clear single service field
+        this.service = undefined;
+    } else if (this.service && (!this.services || this.services.length === 0)) {
+        // If single service is provided, convert to services array
+        this.services = [this.service];
+    }
+    
     next();
 });
 
@@ -294,7 +330,13 @@ app.get('/api/patients', async (req, res) => {
         let query = {};
         
         if (status) query.status = status;
-        if (service) query.service = service;
+        if (service) {
+            // Support both single service and services array
+            query.$or = [
+                { service: service },
+                { services: service }
+            ];
+        }
         if (familyGroup) query.familyGroup = familyGroup;
         
         if (search) {
@@ -349,9 +391,20 @@ app.post('/api/patients', async (req, res) => {
             occupation: req.body.occupation?.trim() || '',
             tel: req.body.tel?.trim(),
             familyGroup: req.body.familyGroup,
-            service: req.body.service,
             status: 'registered'
         };
+        
+        // Handle services - support both single service and multiple services
+        if (req.body.services && Array.isArray(req.body.services) && req.body.services.length > 0) {
+            patientData.services = req.body.services;
+        } else if (req.body.service) {
+            patientData.services = [req.body.service];
+        } else {
+            return res.status(400).json({ 
+                error: 'Service required', 
+                message: 'At least one service must be specified' 
+            });
+        }
         
         // Check for duplicate phone number more explicitly
         const existingPatient = await Patient.findOne({ tel: patientData.tel });
@@ -525,8 +578,21 @@ app.get('/api/stats', async (req, res) => {
             Patient.countDocuments(),
             Patient.countDocuments({ status: 'registered' }),
             Patient.countDocuments({ status: 'completed' }),
+            // Enhanced service statistics to handle both service and services fields
             Patient.aggregate([
-                { $group: { _id: '$service', count: { $sum: 1 } } },
+                {
+                    $project: {
+                        allServices: {
+                            $cond: {
+                                if: { $gt: [{ $size: { $ifNull: ['$services', []] } }, 0] },
+                                then: '$services',
+                                else: { $cond: { if: '$service', then: ['$service'], else: [] } }
+                            }
+                        }
+                    }
+                },
+                { $unwind: '$allServices' },
+                { $group: { _id: '$allServices', count: { $sum: 1 } } },
                 { $sort: { count: -1 } }
             ]),
             Patient.aggregate([
@@ -583,7 +649,16 @@ app.post('/api/search', async (req, res) => {
         
         // Add filters
         if (filters.status) searchQuery.status = filters.status;
-        if (filters.service) searchQuery.service = filters.service;
+        if (filters.service) {
+            // Support both single service and services array
+            searchQuery.$and = searchQuery.$and || [];
+            searchQuery.$and.push({
+                $or: [
+                    { service: filters.service },
+                    { services: filters.service }
+                ]
+            });
+        }
         if (filters.familyGroup) searchQuery.familyGroup = filters.familyGroup;
         
         const patients = await Patient.find(searchQuery)
@@ -765,7 +840,13 @@ app.get('/api/export', async (req, res) => {
         // Build query
         let query = {};
         if (status) query.status = status;
-        if (service) query.service = service;
+        if (service) {
+            // Support both single service and services array
+            query.$or = [
+                { service: service },
+                { services: service }
+            ];
+        }
         if (familyGroup) query.familyGroup = familyGroup;
         
         const patients = await Patient.find(query).sort({ createdAt: -1 });
@@ -802,7 +883,7 @@ function convertToCSV(patients) {
     
     const headers = [
         'Name', 'Age', 'Sex', 'Occupation', 'Phone', 'Family Group', 
-        'Service', 'Status', 'Registration Date', 'Diagnosis', 
+        'Services', 'Status', 'Registration Date', 'Diagnosis', 
         'Lab Tests', 'Treatment Plan', 'Completion Date'
     ];
     
@@ -815,7 +896,7 @@ function convertToCSV(patients) {
             `"${patient.occupation || ''}"`,
             patient.tel,
             patient.familyGroup,
-            `"${patient.service}"`,
+            `"${patient.services ? patient.services.join('; ') : (patient.service || '')}"`,
             patient.status,
             patient.registrationDate,
             `"${patient.diagnosis || ''}"`,
