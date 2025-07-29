@@ -366,23 +366,29 @@
         .premium-table {
             width: 100%;
             border-collapse: collapse;
+            table-layout: fixed;
         }
 
         .premium-table th {
             background: var(--gradient-primary);
             color: white;
-            padding: 20px;
+            padding: 15px 12px;
             text-align: left;
             font-weight: 600;
-            font-size: 14px;
+            font-size: 13px;
             text-transform: uppercase;
             letter-spacing: 0.5px;
+            white-space: nowrap;
         }
 
         .premium-table td {
-            padding: 20px;
+            padding: 15px 12px;
             border-bottom: 1px solid rgba(229, 231, 235, 0.5);
             transition: all 0.3s ease;
+            vertical-align: middle;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
         }
 
         .premium-table tr:hover {
@@ -390,14 +396,49 @@
             cursor: pointer;
         }
 
+        /* Column widths */
+        .premium-table th:nth-child(1),
+        .premium-table td:nth-child(1) {
+            width: 25%;
+            white-space: normal;
+        }
+
+        .premium-table th:nth-child(2),
+        .premium-table td:nth-child(2) {
+            width: 20%;
+        }
+
+        .premium-table th:nth-child(3),
+        .premium-table td:nth-child(3) {
+            width: 12%;
+        }
+
+        .premium-table th:nth-child(4),
+        .premium-table td:nth-child(4) {
+            width: 12%;
+        }
+
+        .premium-table th:nth-child(5),
+        .premium-table td:nth-child(5) {
+            width: 13%;
+        }
+
+        .premium-table th:nth-child(6),
+        .premium-table td:nth-child(6) {
+            width: 18%;
+            white-space: normal;
+        }
+
         /* Status Badges */
         .status-badge {
-            padding: 8px 16px;
-            border-radius: 20px;
-            font-size: 13px;
+            display: inline-block;
+            padding: 6px 12px;
+            border-radius: 15px;
+            font-size: 11px;
             font-weight: 600;
             text-transform: uppercase;
             letter-spacing: 0.5px;
+            white-space: nowrap;
         }
 
         .status-registered {
@@ -722,11 +763,51 @@
 
             .action-buttons {
                 flex-direction: column;
+                gap: 4px;
             }
 
             .action-buttons .btn {
                 width: 100%;
                 justify-content: center;
+                font-size: 10px;
+                padding: 4px 8px;
+            }
+
+            /* Mobile table adjustments */
+            .premium-table th,
+            .premium-table td {
+                padding: 8px 4px;
+                font-size: 11px;
+            }
+
+            .premium-table th:nth-child(1),
+            .premium-table td:nth-child(1) {
+                width: 30%;
+            }
+
+            .premium-table th:nth-child(2),
+            .premium-table td:nth-child(2) {
+                width: 25%;
+            }
+
+            .premium-table th:nth-child(3),
+            .premium-table td:nth-child(3) {
+                width: 10%;
+            }
+
+            .premium-table th:nth-child(4),
+            .premium-table td:nth-child(4) {
+                width: 10%;
+            }
+
+            .premium-table th:nth-child(5),
+            .premium-table td:nth-child(5) {
+                width: 10%;
+            }
+
+            .premium-table th:nth-child(6),
+            .premium-table td:nth-child(6) {
+                width: 15%;
             }
         }
 
@@ -1951,41 +2032,41 @@
             tbody.innerHTML = patientsToShow.map(patient => `
                 <tr onclick="showPatientDetails(${JSON.stringify(patient).replace(/"/g, '&quot;')})" style="cursor: pointer;">
                     <td>
-                        <div style="display: flex; align-items: center; gap: 12px;">
-                            <div style="width: 40px; height: 40px; border-radius: 50%; background: var(--gradient-primary); display: flex; align-items: center; justify-content: center; color: white; font-weight: 600;">
+                        <div style="display: flex; align-items: center; gap: 10px;">
+                            <div style="width: 35px; height: 35px; border-radius: 50%; background: var(--gradient-primary); display: flex; align-items: center; justify-content: center; color: white; font-weight: 600; font-size: 14px; flex-shrink: 0;">
                                 ${patient.name.charAt(0).toUpperCase()}
                             </div>
-                            <div>
-                                <div style="font-weight: 600; color: var(--dark);">${patient.name}</div>
-                                <div style="font-size: 13px; color: #6b7280;">📞 ${patient.tel}</div>
+                            <div style="min-width: 0; flex: 1;">
+                                <div style="font-weight: 600; color: var(--dark); font-size: 14px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;" title="${patient.name}">${patient.name}</div>
+                                <div style="font-size: 12px; color: #6b7280;">📞 ${patient.tel}</div>
                             </div>
                         </div>
                     </td>
                     <td>
-                        <div style="font-weight: 500; color: var(--primary);">🏥 ${patient.service}</div>
+                        <div style="font-weight: 500; color: var(--primary); font-size: 13px;" title="${patient.service}">🏥 ${patient.service}</div>
                     </td>
                     <td>
-                        <div style="font-weight: 500;">👥 ${patient.familyGroup}</div>
+                        <div style="font-weight: 500; font-size: 13px;">${patient.familyGroup}</div>
                     </td>
                     <td>
                         <span class="status-badge ${patient.status === 'completed' ? 'status-completed' : 'status-registered'}">
-                            ${patient.status === 'completed' ? '✅ Completed' : '⏳ Pending'}
+                            ${patient.status === 'completed' ? 'COMPLETED' : 'PENDING'}
                         </span>
                     </td>
                     <td>
-                        <div style="font-weight: 500;">📅 ${patient.registrationDate}</div>
+                        <div style="font-weight: 500; font-size: 12px;">${patient.registrationDate}</div>
                     </td>
-                    <td>
+                    <td onclick="event.stopPropagation();">
                         <div class="action-buttons">
                             ${patient.status === 'registered' ? `
-                                <button class="btn btn-success btn-small" onclick="event.stopPropagation(); showCompletionForm(${JSON.stringify(patient).replace(/"/g, '&quot;')})" title="Complete medical record">
+                                <button class="btn btn-success btn-small" onclick="showCompletionForm(${JSON.stringify(patient).replace(/"/g, '&quot;')})" title="Complete medical record">
                                     ✏️ Complete
                                 </button>
                             ` : ''}
-                            <button class="btn btn-warning btn-small" onclick="event.stopPropagation(); showEditForm(${JSON.stringify(patient).replace(/"/g, '&quot;')})" title="Edit patient information">
+                            <button class="btn btn-warning btn-small" onclick="showEditForm(${JSON.stringify(patient).replace(/"/g, '&quot;')})" title="Edit patient information">
                                 📝 Edit
                             </button>
-                            <button class="btn btn-danger btn-small" onclick="event.stopPropagation(); currentPatient = ${JSON.stringify(patient).replace(/"/g, '&quot;')}; confirmDeletePatient()" title="Delete patient">
+                            <button class="btn btn-danger btn-small" onclick="currentPatient = ${JSON.stringify(patient).replace(/"/g, '&quot;')}; confirmDeletePatient()" title="Delete patient">
                                 🗑️ Delete
                             </button>
                         </div>
