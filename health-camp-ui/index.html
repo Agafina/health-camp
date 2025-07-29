@@ -265,6 +265,28 @@
             box-shadow: 0 10px 25px rgba(16, 185, 129, 0.4);
         }
 
+        .btn-danger {
+            background: linear-gradient(135deg, #ef4444, #dc2626);
+            color: white;
+            box-shadow: var(--shadow);
+        }
+
+        .btn-danger:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 25px rgba(239, 68, 68, 0.4);
+        }
+
+        .btn-warning {
+            background: linear-gradient(135deg, #f59e0b, #d97706);
+            color: white;
+            box-shadow: var(--shadow);
+        }
+
+        .btn-warning:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 25px rgba(245, 158, 11, 0.4);
+        }
+
         .btn-secondary {
             background: rgba(255, 255, 255, 0.1);
             color: var(--dark);
@@ -282,6 +304,11 @@
             opacity: 0.6;
             cursor: not-allowed;
             transform: none !important;
+        }
+
+        .btn-small {
+            padding: 8px 12px;
+            font-size: 12px;
         }
 
         /* Premium Forms */
@@ -436,6 +463,13 @@
             margin-bottom: 20px;
         }
 
+        /* Action buttons container */
+        .action-buttons {
+            display: flex;
+            gap: 8px;
+            flex-wrap: wrap;
+        }
+
         /* Modals */
         .modal-overlay {
             position: fixed;
@@ -479,7 +513,7 @@
 
         .modal-header {
             display: flex;
-            justify-content: between;
+            justify-content: space-between;
             align-items: center;
             margin-bottom: 30px;
             padding-bottom: 20px;
@@ -500,6 +534,40 @@
         .modal-close:hover {
             background: rgba(239, 68, 68, 0.1);
             color: var(--danger);
+        }
+
+        /* Confirmation Modal */
+        .confirmation-modal {
+            max-width: 450px;
+        }
+
+        .confirmation-content {
+            text-align: center;
+            padding: 20px 0;
+        }
+
+        .confirmation-icon {
+            font-size: 4rem;
+            margin-bottom: 20px;
+        }
+
+        .confirmation-title {
+            font-size: 1.5rem;
+            font-weight: 700;
+            color: var(--dark);
+            margin-bottom: 15px;
+        }
+
+        .confirmation-message {
+            color: #6b7280;
+            margin-bottom: 30px;
+            line-height: 1.6;
+        }
+
+        .confirmation-buttons {
+            display: flex;
+            gap: 15px;
+            justify-content: center;
         }
 
         /* Animations */
@@ -650,6 +718,15 @@
             .modal {
                 padding: 25px;
                 width: 95%;
+            }
+
+            .action-buttons {
+                flex-direction: column;
+            }
+
+            .action-buttons .btn {
+                width: 100%;
+                justify-content: center;
             }
         }
 
@@ -1022,6 +1099,18 @@
                             <input type="checkbox" id="labXray" value="X-ray">
                             <label for="labXray">📷 X-ray</label>
                         </div>
+                        <div class="checkbox-item">
+                            <input type="checkbox" id="labECG" value="ECG">
+                            <label for="labECG">💓 ECG</label>
+                        </div>
+                        <div class="checkbox-item">
+                            <input type="checkbox" id="labUrinalysis" value="Urinalysis">
+                            <label for="labUrinalysis">🧪 Urinalysis</label>
+                        </div>
+                        <div class="checkbox-item">
+                            <input type="checkbox" id="labLipidProfile" value="Lipid Profile">
+                            <label for="labLipidProfile">📈 Lipid Profile</label>
+                        </div>
                     </div>
                 </div>
 
@@ -1040,6 +1129,84 @@
                 </div>
             </div>
         </div>
+
+        <!-- Edit Patient Form -->
+        <div id="editForm" class="hidden">
+            <div class="premium-card" style="max-width: 800px; margin: 0 auto;">
+                <div style="display: flex; align-items: center; gap: 15px; margin-bottom: 30px;">
+                    <button class="btn btn-secondary" onclick="switchTab(null, 'dashboard')" style="padding: 12px 16px;">
+                        ← Back
+                    </button>
+                    <h2 style="font-size: 1.8rem; font-weight: 700; color: var(--dark); margin: 0;">Edit Patient Information</h2>
+                </div>
+
+                <div id="editAlert"></div>
+                
+                <div class="form-grid">
+                    <div class="form-group">
+                        <label class="form-label">Full Name *</label>
+                        <input type="text" class="form-input" id="editName" required placeholder="Enter patient's full name">
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">Age *</label>
+                        <input type="number" class="form-input" id="editAge" required placeholder="Enter age">
+                    </div>
+                </div>
+
+                <div class="form-grid">
+                    <div class="form-group">
+                        <label class="form-label">Sex *</label>
+                        <select class="form-select" id="editSex" required>
+                            <option value="">Select Sex</option>
+                            <option value="Male">Male</option>
+                            <option value="Female">Female</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">Occupation</label>
+                        <input type="text" class="form-input" id="editOccupation" placeholder="Enter occupation (optional)">
+                    </div>
+                </div>
+
+                <div class="form-group">
+                    <label class="form-label">Telephone *</label>
+                    <input type="tel" class="form-input" id="editTel" required placeholder="Enter phone number">
+                </div>
+
+                <div class="form-grid">
+                    <div class="form-group">
+                        <label class="form-label">Family Group *</label>
+                        <select class="form-select" id="editFamilyGroup" required>
+                            <option value="">Select Family Group</option>
+                            <option value="ESDA">ESDA</option>
+                            <option value="MASUDA">MASUDA</option>
+                            <option value="AKUCDA">AKUCDA</option>
+                            <option value="UBACDA">UBACDA</option>
+                            <option value="OTHERS">OTHERS</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">Service *</label>
+                        <select class="form-select" id="editService" required>
+                            <option value="">Select Service</option>
+                            <option value="General consultations">General consultations</option>
+                            <option value="Eye con">Eye con</option>
+                            <option value="Gynaecology">Gynaecology</option>
+                            <option value="Cervical cancer screening">Cervical cancer screening</option>
+                        </select>
+                    </div>
+                </div>
+
+                <div style="display: flex; gap: 20px; margin-top: 30px;">
+                    <button class="btn btn-success" style="flex: 1;" onclick="updatePatient()" id="updateBtn">
+                        💾 Update Patient
+                    </button>
+                    <button class="btn btn-secondary" onclick="switchTab(null, 'dashboard')">
+                        ❌ Cancel
+                    </button>
+                </div>
+            </div>
+        </div>
     </div>
 
     <!-- Patient Details Modal -->
@@ -1050,13 +1217,38 @@
                 <button class="modal-close" onclick="closePatientModal()">✕</button>
             </div>
             <div id="patientModalContent"></div>
-            <div style="display: flex; gap: 15px; margin-top: 30px;">
+            <div style="display: flex; gap: 15px; margin-top: 30px; flex-wrap: wrap;">
                 <button class="btn btn-primary" id="editPatientBtn" onclick="editFromModal()" style="display: none;">
                     ✏️ Complete Record
+                </button>
+                <button class="btn btn-warning" id="editInfoBtn" onclick="editPatientInfo()" style="display: none;">
+                    📝 Edit Info
+                </button>
+                <button class="btn btn-danger" id="deletePatientBtn" onclick="confirmDeletePatient()" style="display: none;">
+                    🗑️ Delete
                 </button>
                 <button class="btn btn-secondary" onclick="closePatientModal()">
                     Close
                 </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Confirmation Modal -->
+    <div id="confirmationModal" class="modal-overlay">
+        <div class="modal confirmation-modal">
+            <div class="confirmation-content">
+                <div class="confirmation-icon" id="confirmationIcon">⚠️</div>
+                <div class="confirmation-title" id="confirmationTitle">Confirm Action</div>
+                <div class="confirmation-message" id="confirmationMessage">Are you sure you want to proceed?</div>
+                <div class="confirmation-buttons">
+                    <button class="btn btn-danger" id="confirmActionBtn" onclick="executeConfirmedAction()">
+                        Confirm
+                    </button>
+                    <button class="btn btn-secondary" onclick="closeConfirmationModal()">
+                        Cancel
+                    </button>
+                </div>
             </div>
         </div>
     </div>
@@ -1067,6 +1259,8 @@
         let currentPatient = null;
         let currentTab = 'dashboard';
         let isOnline = false;
+        let pendingAction = null;
+        let editingPatient = null;
 
         // API Base URL - Updated to use deployed backend
         const API_BASE_URL = 'https://health-camp-1.onrender.com/api';
@@ -1219,6 +1413,7 @@
             document.getElementById('registration').classList.add('hidden');
             document.getElementById('reports').classList.add('hidden');
             document.getElementById('completionForm').classList.add('hidden');
+            document.getElementById('editForm').classList.add('hidden');
 
             // Show selected view with animation
             const targetView = document.getElementById(tabName);
@@ -1297,6 +1492,85 @@
             }
         }
 
+        // NEW: Edit patient function
+        async function updatePatient() {
+            if (!editingPatient) return;
+
+            const name = document.getElementById('editName').value.trim();
+            const age = document.getElementById('editAge').value.trim();
+            const sex = document.getElementById('editSex').value;
+            const occupation = document.getElementById('editOccupation').value.trim();
+            const tel = document.getElementById('editTel').value.trim();
+            const familyGroup = document.getElementById('editFamilyGroup').value;
+            const service = document.getElementById('editService').value;
+
+            // Enhanced validation
+            if (!name || !age || !sex || !tel || !familyGroup || !service) {
+                showAlert('editAlert', '⚠️ Please fill in all required fields', 'error');
+                return;
+            }
+
+            // Validate phone number format
+            if (tel.length < 8) {
+                showAlert('editAlert', '⚠️ Please enter a valid phone number', 'error');
+                return;
+            }
+
+            const updateBtn = document.getElementById('updateBtn');
+            updateBtn.disabled = true;
+            updateBtn.innerHTML = '<span class="loading"></span>Updating...';
+
+            try {
+                const updateData = {
+                    id: editingPatient._id,
+                    name,
+                    age,
+                    sex,
+                    occupation,
+                    tel,
+                    familyGroup,
+                    service
+                };
+
+                await apiRequest('/patients', {
+                    method: 'PUT',
+                    body: JSON.stringify(updateData)
+                });
+
+                showAlert('editAlert', '🎉 Patient information updated successfully!', 'success');
+                
+                // Show success animation
+                updateBtn.innerHTML = '✅ Updated!';
+                
+                setTimeout(async () => {
+                    await loadAllPatients();
+                    switchTab(null, 'dashboard');
+                    showAlert('dashboardAlert', `✅ ${name}'s information has been updated successfully!`, 'success');
+                }, 1500);
+            } catch (error) {
+                showAlert('editAlert', '❌ Update failed: ' + error.message, 'error');
+                updateBtn.innerHTML = '💾 Update Patient';
+            } finally {
+                updateBtn.disabled = false;
+            }
+        }
+
+        // NEW: Delete patient function
+        async function deletePatient(patientId) {
+            try {
+                await apiRequest('/delete', {
+                    method: 'POST',
+                    body: JSON.stringify({ id: patientId })
+                });
+
+                await loadAllPatients();
+                showAlert('dashboardAlert', '✅ Patient deleted successfully!', 'success');
+            } catch (error) {
+                showAlert('dashboardAlert', '❌ Delete failed: ' + error.message, 'error');
+                throw error;
+            }
+        }
+
         // Enhanced complete record function
         async function completeRecord() {
             if (!currentPatient) return;
@@ -1358,7 +1632,7 @@
             currentPatient = patient;
             
             // Hide all views
-            document.querySelectorAll('#dashboard, #pending, #registration, #reports').forEach(view => {
+            document.querySelectorAll('#dashboard, #pending, #registration, #reports, #editForm').forEach(view => {
                 view.classList.add('hidden');
             });
             document.getElementById('completionForm').classList.remove('hidden');
@@ -1379,6 +1653,29 @@
             
             // Clear form
             clearCompletionForm();
+        }
+
+        // NEW: Show edit form
+        function showEditForm(patient) {
+            editingPatient = patient;
+            
+            // Hide all views
+            document.querySelectorAll('#dashboard, #pending, #registration, #reports, #completionForm').forEach(view => {
+                view.classList.add('hidden');
+            });
+            document.getElementById('editForm').classList.remove('hidden');
+            document.getElementById('editForm').classList.add('slide-in');
+            
+            // Populate form with current patient data
+            document.getElementById('editName').value = patient.name;
+            document.getElementById('editAge').value = patient.age;
+            document.getElementById('editSex').value = patient.sex;
+            document.getElementById('editOccupation').value = patient.occupation || '';
+            document.getElementById('editTel').value = patient.tel;
+            document.getElementById('editFamilyGroup').value = patient.familyGroup;
+            document.getElementById('editService').value = patient.service;
+            
+            clearAlert('editAlert');
         }
 
         // Enhanced patient details modal
@@ -1453,9 +1750,15 @@
                         </div>
                     </div>
                 `;
+                
+                // Show edit info and delete buttons for completed patients
+                document.getElementById('editInfoBtn').style.display = 'inline-flex';
+                document.getElementById('deletePatientBtn').style.display = 'inline-flex';
             } else {
-                // Show edit button for pending patients
+                // Show complete record, edit info, and delete buttons for pending patients
                 document.getElementById('editPatientBtn').style.display = 'inline-flex';
+                document.getElementById('editInfoBtn').style.display = 'inline-flex';
+                document.getElementById('deletePatientBtn').style.display = 'inline-flex';
             }
 
             document.getElementById('patientModalContent').innerHTML = modalContent;
@@ -1465,12 +1768,70 @@
         function closePatientModal() {
             document.getElementById('patientModal').classList.remove('active');
             document.getElementById('editPatientBtn').style.display = 'none';
+            document.getElementById('editInfoBtn').style.display = 'none';
+            document.getElementById('deletePatientBtn').style.display = 'none';
             currentPatient = null;
         }
 
         function editFromModal() {
             closePatientModal();
             showCompletionForm(currentPatient);
+        }
+
+        // NEW: Edit patient info from modal
+        function editPatientInfo() {
+            closePatientModal();
+            showEditForm(currentPatient);
+        }
+
+        // NEW: Confirmation modal functions
+        function showConfirmationModal(title, message, icon, action) {
+            document.getElementById('confirmationTitle').textContent = title;
+            document.getElementById('confirmationMessage').textContent = message;
+            document.getElementById('confirmationIcon').textContent = icon;
+            pendingAction = action;
+            document.getElementById('confirmationModal').classList.add('active');
+        }
+
+        function closeConfirmationModal() {
+            document.getElementById('confirmationModal').classList.remove('active');
+            pendingAction = null;
+        }
+
+        function confirmDeletePatient() {
+            if (!currentPatient) return;
+            
+            showConfirmationModal(
+                'Delete Patient',
+                `Are you sure you want to delete ${currentPatient.name}? This action cannot be undone and will permanently remove all patient data including medical records.`,
+                '🗑️',
+                async () => {
+                    try {
+                        await deletePatient(currentPatient._id);
+                        closePatientModal();
+                        closeConfirmationModal();
+                    } catch (error) {
+                        // Error already handled in deletePatient function
+                    }
+                }
+            );
+        }
+
+        async function executeConfirmedAction() {
+            if (pendingAction) {
+                const confirmBtn = document.getElementById('confirmActionBtn');
+                confirmBtn.disabled = true;
+                confirmBtn.innerHTML = '<span class="loading"></span>Processing...';
+                
+                try {
+                    await pendingAction();
+                } catch (error) {
+                    console.error('Confirmed action failed:', error);
+                } finally {
+                    confirmBtn.disabled = false;
+                    confirmBtn.innerHTML = 'Confirm';
+                }
+            }
         }
 
         // Update functions
@@ -1615,15 +1976,19 @@
                         <div style="font-weight: 500;">📅 ${patient.registrationDate}</div>
                     </td>
                     <td>
-                        ${patient.status === 'registered' ? `
-                            <button class="btn btn-success" onclick="event.stopPropagation(); showCompletionForm(${JSON.stringify(patient).replace(/"/g, '&quot;')})" style="padding: 8px 12px; font-size: 12px;">
-                                ✏️ Complete
+                        <div class="action-buttons">
+                            ${patient.status === 'registered' ? `
+                                <button class="btn btn-success btn-small" onclick="event.stopPropagation(); showCompletionForm(${JSON.stringify(patient).replace(/"/g, '&quot;')})" title="Complete medical record">
+                                    ✏️ Complete
+                                </button>
+                            ` : ''}
+                            <button class="btn btn-warning btn-small" onclick="event.stopPropagation(); showEditForm(${JSON.stringify(patient).replace(/"/g, '&quot;')})" title="Edit patient information">
+                                📝 Edit
                             </button>
-                        ` : `
-                            <button class="btn btn-primary" onclick="event.stopPropagation(); showPatientDetails(${JSON.stringify(patient).replace(/"/g, '&quot;')})" style="padding: 8px 12px; font-size: 12px;">
-                                👁️ View
+                            <button class="btn btn-danger btn-small" onclick="event.stopPropagation(); currentPatient = ${JSON.stringify(patient).replace(/"/g, '&quot;')}; confirmDeletePatient()" title="Delete patient">
+                                🗑️ Delete
                             </button>
-                        `}
+                        </div>
                     </td>
                 </tr>`).join('');
         }
@@ -1898,10 +2263,16 @@
             }
         }
 
-        // Close modal when clicking outside
+        // Close modals when clicking outside
         document.getElementById('patientModal').addEventListener('click', function(e) {
             if (e.target === this) {
                 closePatientModal();
+            }
+        });
+
+        document.getElementById('confirmationModal').addEventListener('click', function(e) {
+            if (e.target === this) {
+                closeConfirmationModal();
             }
         });
 
@@ -1909,6 +2280,7 @@
         document.addEventListener('keydown', function(e) {
             if (e.key === 'Escape') {
                 closePatientModal();
+                closeConfirmationModal();
                 closeReport();
             }
         });
