@@ -88,11 +88,7 @@ const patientSchema = new mongoose.Schema({
     },
     service: { 
         type: String,
-        // Remove the required validation since we're using services array
-        enum: {
-            values: ['General consultations', 'Eye consultation', 'Gynaecology', 'Cervical cancer screening', 'Sexual and reproductive health'],
-            message: 'Service must be one of the available options'
-        }
+        // Completely remove required validation and enum - this field is legacy only
     },
     services: {
         type: [String],
@@ -102,10 +98,17 @@ const patientSchema = new mongoose.Schema({
                 if (!services || services.length === 0) {
                     return false;
                 }
-                const validServices = ['General consultations', 'Eye consultation', 'Gynaecology', 'Cervical cancer screening', 'Sexual and reproductive health'];
+                const validServices = [
+                    'General consultations', 
+                    'Eye consultation', 
+                    'Gynaecology', 
+                    'Cervical cancer screening', 
+                    'Sexual and reproductive health',
+                    'Dental consultation'
+                ];
                 return services.every(service => validServices.includes(service));
             },
-            message: 'Invalid service specified. Valid services are: General consultations, Eye consultation, Gynaecology, Cervical cancer screening, Sexual and reproductive health'
+            message: 'Invalid service specified. Valid services are: General consultations, Eye consultation, Gynaecology, Cervical cancer screening, Sexual and reproductive health, Dental consultation'
         }
     },
     registrationDate: { 
@@ -197,13 +200,20 @@ patientSchema.index({ createdAt: -1 });
 patientSchema.pre('save', function(next) {
     this.lastModified = new Date();
     
-    // Handle service/services normalization
+    // Handle service/services normalization - ensure we always have services array
     if (this.services && this.services.length > 0) {
-        // If services array is provided, clear single service field
+        // If services array is provided, clear single service field to avoid conflicts
         this.service = undefined;
     } else if (this.service && (!this.services || this.services.length === 0)) {
         // If single service is provided, convert to services array
         this.services = [this.service];
+        this.service = undefined; // Clear to avoid validation conflicts
+    }
+    
+    // Ensure we have at least one service
+    if (!this.services || this.services.length === 0) {
+        const error = new Error('At least one service is required');
+        return next(error);
     }
     
     next();
