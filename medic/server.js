@@ -49,7 +49,7 @@ mongoose.connect(MONGODB_URI, {
     process.exit(1);
 });
 
-// Enhanced Patient Schema - Production Ready
+// Enhanced Patient Schema - Production Ready with Multi-Service Support
 const patientSchema = new mongoose.Schema({
     name: { 
         type: String, 
@@ -114,7 +114,7 @@ const patientSchema = new mongoose.Schema({
         type: String
         // No validation - this is legacy only
     },
-    // Primary services field
+    // Primary services field - UPDATED with new services
     services: {
         type: [String],
         required: [true, 'At least one service is required'],
@@ -125,11 +125,11 @@ const patientSchema = new mongoose.Schema({
                 }
                 const validServices = [
                     'General consultations', 
-                    'Eye consultation', 
+                    'Eye consultation',  // Updated from 'Eye con'
                     'Gynaecology', 
                     'Cervical cancer screening', 
-                    'Sexual and reproductive health',
-                    'Dental consultation'
+                    'Sexual and reproductive health',  // NEW SERVICE
+                    'Dental consultation'  // NEW SERVICE
                 ];
                 return services.every(service => validServices.includes(service));
             },
@@ -250,13 +250,25 @@ patientSchema.pre('save', function(next) {
         this.name = this.name.replace(/\s+/g, ' ').trim();
     }
     
-    // Handle service/services normalization
+    // Handle service/services normalization and legacy support
     if (this.services && this.services.length > 0) {
+        // Convert 'Eye con' to 'Eye consultation' for backward compatibility
+        this.services = this.services.map(service => {
+            if (service === 'Eye con') {
+                return 'Eye consultation';
+            }
+            return service;
+        });
         // Clear legacy service field
         this.service = undefined;
     } else if (this.service && (!this.services || this.services.length === 0)) {
         // Convert single service to services array
-        this.services = [this.service];
+        let serviceToAdd = this.service;
+        // Handle legacy 'Eye con' conversion
+        if (serviceToAdd === 'Eye con') {
+            serviceToAdd = 'Eye consultation';
+        }
+        this.services = [serviceToAdd];
         this.service = undefined;
     }
     
@@ -287,6 +299,29 @@ patientSchema.pre(['updateOne', 'findOneAndUpdate'], function(next) {
         if (!isNaN(ageNum)) {
             this.set({ age: ageNum });
         }
+    }
+    
+    // Handle services conversion in updates
+    const update = this.getUpdate();
+    if (update.services && Array.isArray(update.services)) {
+        // Convert 'Eye con' to 'Eye consultation' for backward compatibility
+        const convertedServices = update.services.map(service => {
+            if (service === 'Eye con') {
+                return 'Eye consultation';
+            }
+            return service;
+        });
+        this.set({ services: convertedServices });
+        // Clear legacy service field
+        this.set({ service: undefined });
+    } else if (update.service && (!update.services || update.services.length === 0)) {
+        // Convert single service to services array
+        let serviceToAdd = update.service;
+        if (serviceToAdd === 'Eye con') {
+            serviceToAdd = 'Eye consultation';
+        }
+        this.set({ services: [serviceToAdd] });
+        this.set({ service: undefined });
     }
     
     next();
@@ -451,7 +486,13 @@ app.get('/api/health', async (req, res) => {
             timestamp: new Date().toISOString(),
             mongoStatus: 'connected',
             environment: process.env.NODE_ENV || 'development',
-            version: '3.0.0',
+            version: '3.1.0',
+            features: [
+                'Multi-Service Selection Support',
+                'Sexual and Reproductive Health Service',
+                'Dental Consultation Service',
+                'Enhanced Service Management'
+            ],
             stats: {
                 totalPatients,
                 activePatients,
@@ -567,7 +608,7 @@ app.get('/api/patients', async (req, res) => {
     }
 });
 
-// 3. Create New Patient - Production Ready
+// 3. Create New Patient - Enhanced with Multi-Service Support
 app.post('/api/patients', async (req, res) => {
     try {
         console.log('➕ Creating new patient:', req.body.name);
@@ -585,7 +626,7 @@ app.post('/api/patients', async (req, res) => {
             status: 'registered'
         };
         
-        // Handle services - prioritize services array
+        // Handle services - prioritize services array, support both single and multiple
         if (inputData.services && Array.isArray(inputData.services) && inputData.services.length > 0) {
             patientData.services = inputData.services.filter(s => s && s.trim());
         } else if (inputData.service && inputData.service.trim()) {
@@ -608,6 +649,27 @@ app.post('/api/patients', async (req, res) => {
                 error: 'Missing required fields',
                 message: `Please provide: ${missingFields.join(', ')}`,
                 missingFields
+            });
+        }
+        
+        // Validate services
+        const validServices = [
+            'General consultations', 
+            'Eye consultation', 
+            'Gynaecology', 
+            'Cervical cancer screening', 
+            'Sexual and reproductive health',
+            'Dental consultation'
+        ];
+        
+        const invalidServices = patientData.services.filter(service => !validServices.includes(service));
+        if (invalidServices.length > 0) {
+            return res.status(400).json({
+                success: false,
+                error: 'Invalid services',
+                message: `Invalid services: ${invalidServices.join(', ')}. Valid services are: ${validServices.join(', ')}`,
+                invalidServices,
+                validServices
             });
         }
         
@@ -640,12 +702,13 @@ app.post('/api/patients', async (req, res) => {
         console.log('✅ Patient created successfully:', {
             id: patient._id,
             name: patient.name,
-            tel: patient.tel
+            tel: patient.tel,
+            services: patient.services
         });
         
         res.status(201).json({
             success: true,
-            message: 'Patient registered successfully',
+            message: `Patient registered successfully for ${patient.services.length} service${patient.services.length > 1 ? 's' : ''}`,
             data: patient
         });
         
@@ -654,7 +717,7 @@ app.post('/api/patients', async (req, res) => {
     }
 });
 
-// 4. Update Patient - Enhanced
+// 4. Update Patient - Enhanced with Multi-Service Support
 app.put('/api/patients', async (req, res) => {
     try {
         const { id, ...updateData } = req.body;
@@ -694,13 +757,44 @@ app.put('/api/patients', async (req, res) => {
         // Sanitize update data
         const sanitizedData = sanitizeInput(updateData);
         
-        // Handle services update
+        // Handle services update - support both single and multiple services
         if (sanitizedData.services && Array.isArray(sanitizedData.services) && sanitizedData.services.length > 0) {
             sanitizedData.services = sanitizedData.services.filter(s => s && s.trim());
             sanitizedData.service = undefined;
         } else if (sanitizedData.service && sanitizedData.service.trim()) {
             sanitizedData.services = [sanitizedData.service.trim()];
             sanitizedData.service = undefined;
+        }
+        
+        // Validate services if they're being updated
+        if (sanitizedData.services) {
+            const validServices = [
+                'General consultations', 
+                'Eye consultation', 
+                'Gynaecology', 
+                'Cervical cancer screening', 
+                'Sexual and reproductive health',
+                'Dental consultation'
+            ];
+            
+            const invalidServices = sanitizedData.services.filter(service => !validServices.includes(service));
+            if (invalidServices.length > 0) {
+                return res.status(400).json({
+                    success: false,
+                    error: 'Invalid services',
+                    message: `Invalid services: ${invalidServices.join(', ')}. Valid services are: ${validServices.join(', ')}`,
+                    invalidServices,
+                    validServices
+                });
+            }
+            
+            if (sanitizedData.services.length === 0) {
+                return res.status(400).json({
+                    success: false,
+                    error: 'At least one service is required',
+                    message: 'Please select at least one service'
+                });
+            }
         }
         
         // Add completion timestamp if completing
@@ -750,11 +844,12 @@ app.put('/api/patients', async (req, res) => {
         const action = sanitizedData.status === 'completed' ? 'completed' : 'updated';
         await addModificationHistory(patient._id, action, changes, req);
         
-        console.log('✅ Patient updated successfully:', patient.name);
+        const servicesCount = patient.services ? patient.services.length : 0;
+        console.log('✅ Patient updated successfully:', patient.name, `with ${servicesCount} services`);
         
         res.json({ 
             success: true,
-            message: 'Patient updated successfully',
+            message: `Patient updated successfully with ${servicesCount} service${servicesCount > 1 ? 's' : ''}`,
             data: patient,
             changes: Object.keys(changes)
         });
@@ -841,7 +936,7 @@ app.post('/api/patient', async (req, res) => {
     }
 });
 
-// 6. Enhanced Statistics
+// 6. Enhanced Statistics with Multi-Service Support
 app.get('/api/stats', async (req, res) => {
     try {
         console.log('📊 Generating comprehensive statistics');
@@ -871,7 +966,7 @@ app.get('/api/stats', async (req, res) => {
                 createdAt: { $gte: periodStart },
                 isDeleted: { $ne: true }
             }),
-            // Enhanced service statistics
+            // Enhanced service statistics with multi-service support
             Patient.aggregate([
                 { $match: { isDeleted: { $ne: true } } },
                 {
@@ -980,7 +1075,7 @@ app.get('/api/stats', async (req, res) => {
     }
 });
 
-// 7. Enhanced Search
+// 7. Enhanced Search with Multi-Service Support
 app.post('/api/search', async (req, res) => {
     try {
         const { query, filters = {}, limit = 50 } = req.body;
@@ -1158,7 +1253,147 @@ app.post('/api/delete', async (req, res) => {
     }
 });
 
-// 9. Restore Deleted Patient
+// 9. Export Data - Enhanced with Multi-Service Support
+app.get('/api/export', async (req, res) => {
+    try {
+        const { 
+            format = 'json', 
+            status, 
+            service, 
+            familyGroup, 
+            includeDeleted = 'false',
+            dateFrom,
+            dateTo
+        } = req.query;
+        
+        console.log('📤 Exporting data in format:', format);
+        
+        // Build query
+        let query = {};
+        
+        if (includeDeleted !== 'true') {
+            query.isDeleted = { $ne: true };
+        }
+        
+        if (status && status !== 'all') query.status = status;
+        
+        if (service) {
+            query.$or = [
+                { service: service },
+                { services: service }
+            ];
+        }
+        
+        if (familyGroup && familyGroup !== 'all') query.familyGroup = familyGroup;
+        
+        // Date range filtering
+        if (dateFrom || dateTo) {
+            query.createdAt = {};
+            if (dateFrom) query.createdAt.$gte = new Date(dateFrom);
+            if (dateTo) {
+                const endDate = new Date(dateTo);
+                endDate.setHours(23, 59, 59, 999);
+                query.createdAt.$lte = endDate;
+            }
+        }
+        
+        const patients = await Patient.find(query)
+            .sort({ createdAt: -1 })
+            .select('-modificationHistory'); // Exclude history for export
+        
+        const exportData = {
+            exportInfo: {
+                exportDate: new Date().toISOString(),
+                exportedBy: 'Health Campaign System v3.1.0',
+                totalRecords: patients.length,
+                format: format,
+                filters: { status, service, familyGroup, includeDeleted, dateFrom, dateTo },
+                features: [
+                    'Multi-Service Selection Support',
+                    'Sexual and Reproductive Health Service', 
+                    'Dental Consultation Service'
+                ]
+            },
+            patients: patients
+        };
+        
+        const timestamp = new Date().toISOString().split('T')[0];
+        
+        if (format === 'csv') {
+            const csv = convertToCSV(patients);
+            res.setHeader('Content-Type', 'text/csv; charset=utf-8');
+            res.setHeader('Content-Disposition', `attachment; filename="health_campaign_patients_${timestamp}.csv"`);
+            res.send('\ufeff' + csv); // Add BOM for proper Excel encoding
+        } else {
+            res.setHeader('Content-Type', 'application/json; charset=utf-8');
+            res.setHeader('Content-Disposition', `attachment; filename="health_campaign_patients_${timestamp}.json"`);
+            res.json(exportData);
+        }
+        
+        console.log(`✅ Exported ${patients.length} patients as ${format.toUpperCase()}`);
+        
+    } catch (error) {
+        handleError(res, error, 'Export failed', req);
+    }
+});
+
+// Enhanced CSV conversion with multi-service support
+function convertToCSV(patients) {
+    if (!patients.length) return 'No data available for export';
+    
+    const headers = [
+        'ID', 'Name', 'Age', 'Sex', 'Occupation', 'Phone', 'Family Group', 
+        'Services', 'Status', 'Registration Date', 'Registration Time',
+        'Diagnosis', 'Lab Tests', 'Treatment Plan', 'Completion Date', 'Completion Time',
+        'Created At', 'Last Modified'
+    ];
+    
+    const escapeCsvField = (field) => {
+        if (field === null || field === undefined) return '';
+        const str = String(field);
+        if (str.includes(',') || str.includes('"') || str.includes('\n')) {
+            return `"${str.replace(/"/g, '""')}"`;
+        }
+        return str;
+    };
+    
+    const csvContent = [
+        headers.join(','),
+        ...patients.map(patient => {
+            // Handle services - support both single and multiple services
+            const servicesDisplay = patient.services && patient.services.length > 0 
+                ? patient.services.join('; ') 
+                : (patient.service || '');
+                
+            return [
+                escapeCsvField(patient._id),
+                escapeCsvField(patient.name),
+                escapeCsvField(patient.age),
+                escapeCsvField(patient.sex),
+                escapeCsvField(patient.occupation || ''),
+                escapeCsvField(patient.tel),
+                escapeCsvField(patient.familyGroup),
+                escapeCsvField(servicesDisplay),
+                escapeCsvField(patient.status),
+                escapeCsvField(patient.registrationDate),
+                escapeCsvField(patient.registrationTime || ''),
+                escapeCsvField(patient.diagnosis || ''),
+                escapeCsvField(patient.labTests?.join('; ') || ''),
+                escapeCsvField(patient.treatmentPlan || ''),
+                escapeCsvField(patient.completionDate || ''),
+                escapeCsvField(patient.completionTime || ''),
+                escapeCsvField(patient.createdAt ? new Date(patient.createdAt).toLocaleString() : ''),
+                escapeCsvField(patient.lastModified ? new Date(patient.lastModified).toLocaleString() : '')
+            ].join(',');
+        })
+    ].join('\n');
+    
+    return csvContent;
+}
+
+// Additional endpoints for completeness...
+
+// 10. Restore Deleted Patient
 app.post('/api/patients/:id/restore', async (req, res) => {
     try {
         const { id } = req.params;
@@ -1203,7 +1438,118 @@ app.post('/api/patients/:id/restore', async (req, res) => {
     }
 });
 
-// 10. Bulk Operations - Enhanced
+// 11. Get Deleted Patients
+app.get('/api/patients/deleted', async (req, res) => {
+    try {
+        console.log('🗑️ Getting deleted patients');
+        
+        const { page = 1, limit = 100 } = req.query;
+        
+        const deletedPatients = await Patient.find({ isDeleted: true })
+            .sort({ deletedAt: -1 })
+            .limit(parseInt(limit))
+            .skip((parseInt(page) - 1) * parseInt(limit))
+            .select('-modificationHistory');
+        
+        const total = await Patient.countDocuments({ isDeleted: true });
+        
+        res.json({
+            success: true,
+            data: deletedPatients,
+            pagination: {
+                currentPage: parseInt(page),
+                totalPages: Math.ceil(total / parseInt(limit)),
+                totalPatients: total,
+                hasNext: parseInt(page) * parseInt(limit) < total,
+                hasPrev: parseInt(page) > 1
+            }
+        });
+        
+    } catch (error) {
+        handleError(res, error, 'Failed to retrieve deleted patients', req);
+    }
+});
+
+// 12. Patient History
+app.get('/api/patients/:id/history', async (req, res) => {
+    try {
+        const { id } = req.params;
+        console.log('📜 Getting patient history:', id);
+        
+        if (!validateObjectId(id)) {
+            return res.status(400).json({ 
+                success: false,
+                error: 'Invalid patient ID format' 
+            });
+        }
+        
+        const patient = await Patient.findById(id).select('name services modificationHistory');
+        
+        if (!patient) {
+            return res.status(404).json({ 
+                success: false,
+                error: 'Patient not found' 
+            });
+        }
+        
+        res.json({
+            success: true,
+            data: {
+                patientName: patient.name,
+                services: patient.services || (patient.service ? [patient.service] : []),
+                history: patient.modificationHistory || []
+            }
+        });
+        
+    } catch (error) {
+        handleError(res, error, 'Failed to retrieve patient history', req);
+    }
+});
+
+// 13. System Information
+app.get('/api/system', async (req, res) => {
+    try {
+        const dbStats = await mongoose.connection.db.stats();
+        
+        res.json({
+            success: true,
+            system: {
+                version: '3.1.0',
+                environment: process.env.NODE_ENV || 'development',
+                nodeVersion: process.version,
+                uptime: process.uptime(),
+                memory: process.memoryUsage(),
+                features: [
+                    'Multi-Service Selection Support',
+                    'Sexual and Reproductive Health Service',
+                    'Dental Consultation Service',
+                    'Enhanced Service Management',
+                    'Backward Compatibility',
+                    'Legacy Service Migration'
+                ],
+                supportedServices: [
+                    'General consultations',
+                    'Eye consultation',
+                    'Gynaecology',
+                    'Cervical cancer screening',
+                    'Sexual and reproductive health',
+                    'Dental consultation'
+                ],
+                database: {
+                    name: mongoose.connection.name,
+                    collections: dbStats.collections,
+                    dataSize: dbStats.dataSize,
+                    storageSize: dbStats.storageSize,
+                    indexes: dbStats.indexes
+                }
+            }
+        });
+    } catch (error) {
+        handleError(res, error, 'Failed to retrieve system information', req);
+    }
+});
+
+// 14. Bulk Operations - Enhanced with Multi-Service Support
 app.post('/api/patients/bulk', async (req, res) => {
     try {
         const { operation, patientIds, updateData, filters } = req.body;
@@ -1299,6 +1645,28 @@ app.post('/api/patients/bulk', async (req, res) => {
                 const sanitizedUpdateData = sanitizeInput(updateData);
                 sanitizedUpdateData.lastModified = new Date();
                 
+                // Handle services in bulk update
+                if (sanitizedUpdateData.services) {
+                    const validServices = [
+                        'General consultations', 
+                        'Eye consultation', 
+                        'Gynaecology', 
+                        'Cervical cancer screening', 
+                        'Sexual and reproductive health',
+                        'Dental consultation'
+                    ];
+                    
+                    const invalidServices = sanitizedUpdateData.services.filter(service => !validServices.includes(service));
+                    if (invalidServices.length > 0) {
+                        return res.status(400).json({
+                            success: false,
+                            error: 'Invalid services in bulk update',
+                            invalidServices,
+                            validServices
+                        });
+                    }
+                }
+                
                 result = await Patient.updateMany(
                     { _id: { $in: targetIds }, isDeleted: { $ne: true } },
                     sanitizedUpdateData
@@ -1343,243 +1711,38 @@ app.post('/api/patients/bulk', async (req, res) => {
     }
 });
 
-// 11. Export Data - Enhanced
-app.get('/api/export', async (req, res) => {
-    try {
-        const { 
-            format = 'json', 
-            status, 
-            service, 
-            familyGroup, 
-            includeDeleted = 'false',
-            dateFrom,
-            dateTo
-        } = req.query;
-        
-        console.log('📤 Exporting data in format:', format);
-        
-        // Build query
-        let query = {};
-        
-        if (includeDeleted !== 'true') {
-            query.isDeleted = { $ne: true };
-        }
-        
-        if (status && status !== 'all') query.status = status;
-        
-        if (service) {
-            query.$or = [
-                { service: service },
-                { services: service }
-            ];
-        }
-        
-        if (familyGroup && familyGroup !== 'all') query.familyGroup = familyGroup;
-        
-        // Date range filtering
-        if (dateFrom || dateTo) {
-            query.createdAt = {};
-            if (dateFrom) query.createdAt.$gte = new Date(dateFrom);
-            if (dateTo) {
-                const endDate = new Date(dateTo);
-                endDate.setHours(23, 59, 59, 999);
-                query.createdAt.$lte = endDate;
-            }
-        }
-        
-        const patients = await Patient.find(query)
-            .sort({ createdAt: -1 })
-            .select('-modificationHistory'); // Exclude history for export
-        
-        const exportData = {
-            exportInfo: {
-                exportDate: new Date().toISOString(),
-                exportedBy: 'Health Campaign System v3.0',
-                totalRecords: patients.length,
-                format: format,
-                filters: { status, service, familyGroup, includeDeleted, dateFrom, dateTo }
-            },
-            patients: patients
-        };
-        
-        const timestamp = new Date().toISOString().split('T')[0];
-        
-        if (format === 'csv') {
-            const csv = convertToCSV(patients);
-            res.setHeader('Content-Type', 'text/csv; charset=utf-8');
-            res.setHeader('Content-Disposition', `attachment; filename="health_campaign_patients_${timestamp}.csv"`);
-            res.send('\ufeff' + csv); // Add BOM for proper Excel encoding
-        } else {
-            res.setHeader('Content-Type', 'application/json; charset=utf-8');
-            res.setHeader('Content-Disposition', `attachment; filename="health_campaign_patients_${timestamp}.json"`);
-            res.json(exportData);
-        }
-        
-        console.log(`✅ Exported ${patients.length} patients as ${format.toUpperCase()}`);
-        
-    } catch (error) {
-        handleError(res, error, 'Export failed', req);
-    }
-});
-
-// Enhanced CSV conversion with better formatting
-function convertToCSV(patients) {
-    if (!patients.length) return 'No data available for export';
-    
-    const headers = [
-        'ID', 'Name', 'Age', 'Sex', 'Occupation', 'Phone', 'Family Group', 
-        'Services', 'Status', 'Registration Date', 'Registration Time',
-        'Diagnosis', 'Lab Tests', 'Treatment Plan', 'Completion Date', 'Completion Time',
-        'Created At', 'Last Modified'
-    ];
-    
-    const escapeCsvField = (field) => {
-        if (field === null || field === undefined) return '';
-        const str = String(field);
-        if (str.includes(',') || str.includes('"') || str.includes('\n')) {
-            return `"${str.replace(/"/g, '""')}"`;
-        }
-        return str;
-    };
-    
-    const csvContent = [
-        headers.join(','),
-        ...patients.map(patient => [
-            escapeCsvField(patient._id),
-            escapeCsvField(patient.name),
-            escapeCsvField(patient.age),
-            escapeCsvField(patient.sex),
-            escapeCsvField(patient.occupation || ''),
-            escapeCsvField(patient.tel),
-            escapeCsvField(patient.familyGroup),
-            escapeCsvField(patient.services ? patient.services.join('; ') : (patient.service || '')),
-            escapeCsvField(patient.status),
-            escapeCsvField(patient.registrationDate),
-            escapeCsvField(patient.registrationTime || ''),
-            escapeCsvField(patient.diagnosis || ''),
-            escapeCsvField(patient.labTests?.join('; ') || ''),
-            escapeCsvField(patient.treatmentPlan || ''),
-            escapeCsvField(patient.completionDate || ''),
-            escapeCsvField(patient.completionTime || ''),
-            escapeCsvField(patient.createdAt ? new Date(patient.createdAt).toLocaleString() : ''),
-            escapeCsvField(patient.lastModified ? new Date(patient.lastModified).toLocaleString() : '')
-        ].join(','))
-    ].join('\n');
-    
-    return csvContent;
-}
-
-// 12. Get Deleted Patients
-app.get('/api/patients/deleted', async (req, res) => {
-    try {
-        console.log('🗑️ Getting deleted patients');
-        
-        const { page = 1, limit = 100 } = req.query;
-        
-        const deletedPatients = await Patient.find({ isDeleted: true })
-            .sort({ deletedAt: -1 })
-            .limit(parseInt(limit))
-            .skip((parseInt(page) - 1) * parseInt(limit))
-            .select('-modificationHistory');
-        
-        const total = await Patient.countDocuments({ isDeleted: true });
-        
-        res.json({
-            success: true,
-            data: deletedPatients,
-            pagination: {
-                currentPage: parseInt(page),
-                totalPages: Math.ceil(total / parseInt(limit)),
-                totalPatients: total,
-                hasNext: parseInt(page) * parseInt(limit) < total,
-                hasPrev: parseInt(page) > 1
-            }
-        });
-        
-    } catch (error) {
-        handleError(res, error, 'Failed to retrieve deleted patients', req);
-    }
-});
-
-// 13. Patient History
-app.get('/api/patients/:id/history', async (req, res) => {
-    try {
-        const { id } = req.params;
-        console.log('📜 Getting patient history:', id);
-        
-        if (!validateObjectId(id)) {
-            return res.status(400).json({ 
-                success: false,
-                error: 'Invalid patient ID format' 
-            });
-        }
-        
-        const patient = await Patient.findById(id).select('name modificationHistory');
-        
-        if (!patient) {
-            return res.status(404).json({ 
-                success: false,
-                error: 'Patient not found' 
-            });
-        }
-        
-        res.json({
-            success: true,
-            data: {
-                patientName: patient.name,
-                history: patient.modificationHistory || []
-            }
-        });
-        
-    } catch (error) {
-        handleError(res, error, 'Failed to retrieve patient history', req);
-    }
-});
-
-// 14. System Information
-app.get('/api/system', async (req, res) => {
-    try {
-        const dbStats = await mongoose.connection.db.stats();
-        
-        res.json({
-            success: true,
-            system: {
-                version: '3.0.0',
-                environment: process.env.NODE_ENV || 'development',
-                nodeVersion: process.version,
-                uptime: process.uptime(),
-                memory: process.memoryUsage(),
-                database: {
-                    name: mongoose.connection.name,
-                    collections: dbStats.collections,
-                    dataSize: dbStats.dataSize,
-                    storageSize: dbStats.storageSize,
-                    indexes: dbStats.indexes
-                }
-            }
-        });
-    } catch (error) {
-        handleError(res, error, 'Failed to retrieve system information', req);
-    }
-});
-
 // ===== SERVE MAIN PAGE =====
 app.get('/', (req, res) => {
     console.log('🏠 Serving main page');
     res.sendFile(__dirname + '/index.html');
 });
 
-// API documentation endpoint
+// API documentation endpoint - Updated
 app.get('/api', (req, res) => {
     res.json({
         name: 'Health Campaign Management API',
-        version: '3.0.0',
-        description: 'Comprehensive patient registration and medical records management system',
+        version: '3.1.0',
+        description: 'Comprehensive patient registration and medical records management system with multi-service support',
+        newFeatures: [
+            'Multi-Service Selection - Patients can register for multiple services',
+            'Sexual and Reproductive Health Service',
+            'Dental Consultation Service',
+            'Enhanced Service Management',
+            'Backward Compatibility with legacy single service'
+        ],
+        supportedServices: [
+            'General consultations',
+            'Eye consultation',
+            'Gynaecology', 
+            'Cervical cancer screening',
+            'Sexual and reproductive health',
+            'Dental consultation'
+        ],
         endpoints: {
             'GET /api/health': 'System health check and statistics',
             'GET /api/patients': 'Get all patients with filtering and pagination',
-            'POST /api/patients': 'Create new patient',
-            'PUT /api/patients': 'Update patient information',
+            'POST /api/patients': 'Create new patient with multi-service support',
+            'PUT /api/patients': 'Update patient information with multi-service support',
             'GET /api/patients/:id': 'Get single patient by ID',
             'DELETE /api/patients/:id': 'Delete patient (soft delete by default)',
             'POST /api/patients/:id/restore': 'Restore deleted patient',
@@ -1594,9 +1757,9 @@ app.get('/api', (req, res) => {
             'POST /api/delete': 'Delete patient (legacy endpoint)'
         },
         features: [
-            'Patient Registration & Management',
+            'Multi-Service Patient Registration',
             'Medical Records with Lab Tests',
-            'Multiple Services Support',
+            'Multiple Services Support per Patient',
             'Advanced Search & Filtering',
             'Soft Delete with Restore',
             'Bulk Operations',
@@ -1604,7 +1767,8 @@ app.get('/api', (req, res) => {
             'Comprehensive Audit Trail',
             'Enhanced Validation',
             'Performance Optimized',
-            'Production Ready'
+            'Production Ready',
+            'Backward Compatibility'
         ]
     });
 });
@@ -1670,7 +1834,7 @@ process.on('unhandledRejection', (reason, promise) => {
 const server = app.listen(PORT, () => {
     console.log('🚀 ========================================');
     console.log('🚀  Health Campaign Management System');
-    console.log('🚀  Production Ready Server v3.0.0');
+    console.log('🚀  Multi-Service Support Server v3.1.0');
     console.log('🚀 ========================================');
     console.log(`🚀  Port: ${PORT}`);
     console.log(`🚀  Environment: ${process.env.NODE_ENV || 'development'}`);
@@ -1678,7 +1842,22 @@ const server = app.listen(PORT, () => {
     console.log(`🚀  Health Check: http://localhost:${PORT}/api/health`);
     console.log(`🚀  API Documentation: http://localhost:${PORT}/api`);
     console.log('🚀 ========================================');
-    console.log('🚀  Features:');
+    console.log('🚀  NEW FEATURES v3.1.0:');
+    console.log('🚀  ✅ Multi-Service Selection Support');
+    console.log('🚀  ✅ Sexual and Reproductive Health Service');
+    console.log('🚀  ✅ Dental Consultation Service');
+    console.log('🚀  ✅ Enhanced Service Management');
+    console.log('🚀  ✅ Backward Compatibility');
+    console.log('🚀 ========================================');
+    console.log('🚀  SUPPORTED SERVICES:');
+    console.log('🚀  🏥 General consultations');
+    console.log('🚀  👁️ Eye consultation');
+    console.log('🚀  👩‍⚕️ Gynaecology');
+    console.log('🚀  🔬 Cervical cancer screening');
+    console.log('🚀  💕 Sexual and reproductive health');
+    console.log('🚀  🦷 Dental consultation');
+    console.log('🚀 ========================================');
+    console.log('🚀  CORE FEATURES:');
     console.log('🚀  ✅ Enhanced Patient Registration');
     console.log('🚀  ✅ Advanced Medical Records Management');
     console.log('🚀  ✅ Multiple Services & Lab Tests Support');
