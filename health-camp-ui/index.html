@@ -504,6 +504,18 @@
             margin-bottom: 20px;
         }
 
+        /* Service tags for multi-service display */
+        .service-tag {
+            display: inline-block;
+            padding: 4px 8px;
+            margin: 2px;
+            background: var(--gradient-primary);
+            color: white;
+            border-radius: 6px;
+            font-size: 11px;
+            font-weight: 600;
+        }
+
         /* Action buttons container */
         .action-buttons {
             display: flex;
@@ -715,6 +727,72 @@
             color: var(--dark);
         }
 
+        /* Multi-Service Checkbox Styling */
+        .services-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 15px;
+            margin-top: 15px;
+        }
+
+        .service-checkbox {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            padding: 16px 20px;
+            border-radius: 12px;
+            background: rgba(255, 255, 255, 0.5);
+            border: 2px solid transparent;
+            transition: all 0.3s ease;
+            cursor: pointer;
+        }
+
+        .service-checkbox:hover {
+            background: rgba(99, 102, 241, 0.1);
+            border-color: var(--primary);
+            transform: translateY(-2px);
+        }
+
+        .service-checkbox.selected {
+            background: rgba(99, 102, 241, 0.1);
+            border-color: var(--primary);
+            box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.1);
+        }
+
+        .service-checkbox input[type="checkbox"] {
+            width: 20px;
+            height: 20px;
+            accent-color: var(--primary);
+            cursor: pointer;
+        }
+
+        .service-checkbox label {
+            font-weight: 500;
+            cursor: pointer;
+            color: var(--dark);
+            flex: 1;
+        }
+
+        .services-validation {
+            margin-top: 15px;
+            padding: 15px 20px;
+            border-radius: 12px;
+            font-weight: 500;
+            border: 1px solid;
+        }
+
+        .services-validation.success {
+            background: linear-gradient(135deg, #d1fae5, #a7f3d0);
+            border-color: #10b981;
+            color: #065f46;
+        }
+
+        .services-validation.error {
+            background: linear-gradient(135deg, #fee2e2, #fecaca);
+            border-color: #ef4444;
+            color: #991b1b;
+        }
+
         /* Hidden Class */
         .hidden {
             display: none !important;
@@ -749,6 +827,10 @@
             }
 
             .form-grid {
+                grid-template-columns: 1fr;
+            }
+
+            .services-grid {
                 grid-template-columns: 1fr;
             }
 
@@ -887,7 +969,7 @@
         <!-- Premium Header -->
         <div class="premium-header slide-in">
             <h1>🏥 Health Campaign Management</h1>
-            <p>Advanced patient registration and medical records management system</p>
+            <p>Advanced patient registration and medical records management system with multi-service support</p>
         </div>
 
         <!-- Premium Navigation -->
@@ -959,9 +1041,11 @@
                     <select class="form-select" id="serviceFilter">
                         <option value="">All Services</option>
                         <option value="General consultations">General consultations</option>
-                        <option value="Eye con">Eye con</option>
+                        <option value="Eye consultation">Eye consultation</option>
                         <option value="Gynaecology">Gynaecology</option>
                         <option value="Cervical cancer screening">Cervical cancer screening</option>
+                        <option value="Sexual and reproductive health">Sexual and reproductive health</option>
+                        <option value="Dental consultation">Dental consultation</option>
                     </select>
                     <select class="form-select" id="statusFilter">
                         <option value="">All Status</option>
@@ -979,7 +1063,7 @@
                         <thead>
                             <tr>
                                 <th>Patient Information</th>
-                                <th>Service</th>
+                                <th>Services</th>
                                 <th>Family Group</th>
                                 <th>Status</th>
                                 <th>Registration Date</th>
@@ -1007,9 +1091,11 @@
                 <select class="form-select" id="pendingServiceFilter" style="max-width: 300px;">
                     <option value="">All Services</option>
                     <option value="General consultations">General consultations</option>
-                    <option value="Eye con">Eye con</option>
+                    <option value="Eye consultation">Eye consultation</option>
                     <option value="Gynaecology">Gynaecology</option>
                     <option value="Cervical cancer screening">Cervical cancer screening</option>
+                    <option value="Sexual and reproductive health">Sexual and reproductive health</option>
+                    <option value="Dental consultation">Dental consultation</option>
                 </select>
             </div>
 
@@ -1022,7 +1108,7 @@
         <div id="registration" class="hidden">
             <div class="premium-card" style="max-width: 800px; margin: 0 auto;">
                 <h2 style="font-size: 1.8rem; font-weight: 700; margin-bottom: 10px; color: var(--dark);">Patient Registration</h2>
-                <p style="color: #6b7280; margin-bottom: 30px;">Register new patients for health campaign services</p>
+                <p style="color: #6b7280; margin-bottom: 30px;">Register new patients for health campaign services - Select one or more services</p>
 
                 <div id="registrationAlert"></div>
                 
@@ -1057,27 +1143,49 @@
                     <input type="tel" class="form-input" id="regTel" required placeholder="Enter phone number">
                 </div>
 
-                <div class="form-grid">
-                    <div class="form-group">
-                        <label class="form-label">Family Group *</label>
-                        <select class="form-select" id="regFamilyGroup" required>
-                            <option value="">Select Family Group</option>
-                            <option value="ESDA">ESDA</option>
-                            <option value="MASUDA">MASUDA</option>
-                            <option value="AKUCDA">AKUCDA</option>
-                            <option value="UBACDA">UBACDA</option>
-                            <option value="OTHERS">OTHERS</option>
-                        </select>
+                <div class="form-group">
+                    <label class="form-label">Family Group *</label>
+                    <select class="form-select" id="regFamilyGroup" required>
+                        <option value="">Select Family Group</option>
+                        <option value="ESDA">ESDA</option>
+                        <option value="MASUDA">MASUDA</option>
+                        <option value="AKUCDA">AKUCDA</option>
+                        <option value="UBACDA">UBACDA</option>
+                        <option value="OTHERS">OTHERS</option>
+                    </select>
+                </div>
+
+                <!-- Multi-Service Selection -->
+                <div class="form-group">
+                    <label class="form-label">Services * (Select one or more)</label>
+                    <div class="services-grid" id="servicesCheckboxes">
+                        <div class="service-checkbox">
+                            <input type="checkbox" id="serviceGeneral" value="General consultations">
+                            <label for="serviceGeneral">🩺 General consultations</label>
+                        </div>
+                        <div class="service-checkbox">
+                            <input type="checkbox" id="serviceEye" value="Eye consultation">
+                            <label for="serviceEye">👁️ Eye consultation</label>
+                        </div>
+                        <div class="service-checkbox">
+                            <input type="checkbox" id="serviceGynae" value="Gynaecology">
+                            <label for="serviceGynae">👩‍⚕️ Gynaecology</label>
+                        </div>
+                        <div class="service-checkbox">
+                            <input type="checkbox" id="serviceCervical" value="Cervical cancer screening">
+                            <label for="serviceCervical">🔬 Cervical cancer screening</label>
+                        </div>
+                        <div class="service-checkbox">
+                            <input type="checkbox" id="serviceReproductive" value="Sexual and reproductive health">
+                            <label for="serviceReproductive">💕 Sexual and reproductive health</label>
+                        </div>
+                        <div class="service-checkbox">
+                            <input type="checkbox" id="serviceDental" value="Dental consultation">
+                            <label for="serviceDental">🦷 Dental consultation</label>
+                        </div>
                     </div>
-                    <div class="form-group">
-                        <label class="form-label">Service *</label>
-                        <select class="form-select" id="regService" required>
-                            <option value="">Select Service</option>
-                            <option value="General consultations">General consultations</option>
-                            <option value="Eye con">Eye con</option>
-                            <option value="Gynaecology">Gynaecology</option>
-                            <option value="Cervical cancer screening">Cervical cancer screening</option>
-                        </select>
+                    <div id="servicesValidation" class="services-validation hidden">
+                        <span id="servicesValidationText"></span>
                     </div>
                 </div>
 
@@ -1254,27 +1362,49 @@
                     <input type="tel" class="form-input" id="editTel" required placeholder="Enter phone number">
                 </div>
 
-                <div class="form-grid">
-                    <div class="form-group">
-                        <label class="form-label">Family Group *</label>
-                        <select class="form-select" id="editFamilyGroup" required>
-                            <option value="">Select Family Group</option>
-                            <option value="ESDA">ESDA</option>
-                            <option value="MASUDA">MASUDA</option>
-                            <option value="AKUCDA">AKUCDA</option>
-                            <option value="UBACDA">UBACDA</option>
-                            <option value="OTHERS">OTHERS</option>
-                        </select>
+                <div class="form-group">
+                    <label class="form-label">Family Group *</label>
+                    <select class="form-select" id="editFamilyGroup" required>
+                        <option value="">Select Family Group</option>
+                        <option value="ESDA">ESDA</option>
+                        <option value="MASUDA">MASUDA</option>
+                        <option value="AKUCDA">AKUCDA</option>
+                        <option value="UBACDA">UBACDA</option>
+                        <option value="OTHERS">OTHERS</option>
+                    </select>
+                </div>
+
+                <!-- Multi-Service Selection for Edit -->
+                <div class="form-group">
+                    <label class="form-label">Services * (Select one or more)</label>
+                    <div class="services-grid" id="editServicesCheckboxes">
+                        <div class="service-checkbox">
+                            <input type="checkbox" id="editServiceGeneral" value="General consultations">
+                            <label for="editServiceGeneral">🩺 General consultations</label>
+                        </div>
+                        <div class="service-checkbox">
+                            <input type="checkbox" id="editServiceEye" value="Eye consultation">
+                            <label for="editServiceEye">👁️ Eye consultation</label>
+                        </div>
+                        <div class="service-checkbox">
+                            <input type="checkbox" id="editServiceGynae" value="Gynaecology">
+                            <label for="editServiceGynae">👩‍⚕️ Gynaecology</label>
+                        </div>
+                        <div class="service-checkbox">
+                            <input type="checkbox" id="editServiceCervical" value="Cervical cancer screening">
+                            <label for="editServiceCervical">🔬 Cervical cancer screening</label>
+                        </div>
+                        <div class="service-checkbox">
+                            <input type="checkbox" id="editServiceReproductive" value="Sexual and reproductive health">
+                            <label for="editServiceReproductive">💕 Sexual and reproductive health</label>
+                        </div>
+                        <div class="service-checkbox">
+                            <input type="checkbox" id="editServiceDental" value="Dental consultation">
+                            <label for="editServiceDental">🦷 Dental consultation</label>
+                        </div>
                     </div>
-                    <div class="form-group">
-                        <label class="form-label">Service *</label>
-                        <select class="form-select" id="editService" required>
-                            <option value="">Select Service</option>
-                            <option value="General consultations">General consultations</option>
-                            <option value="Eye con">Eye con</option>
-                            <option value="Gynaecology">Gynaecology</option>
-                            <option value="Cervical cancer screening">Cervical cancer screening</option>
-                        </select>
+                    <div id="editServicesValidation" class="services-validation hidden">
+                        <span id="editServicesValidationText"></span>
                     </div>
                 </div>
 
@@ -1346,9 +1476,20 @@
         // API Base URL - Updated to use deployed backend
         const API_BASE_URL = 'https://health-camp-1.onrender.com/api';
 
+        // Available services list
+        const AVAILABLE_SERVICES = [
+            'General consultations',
+            'Eye consultation', 
+            'Gynaecology',
+            'Cervical cancer screening',
+            'Sexual and reproductive health',
+            'Dental consultation'
+        ];
+
         // Initialize the application
         document.addEventListener('DOMContentLoaded', function() {
             setupEventListeners();
+            setupServiceCheckboxListeners();
             checkConnection();
             
             // Auto-refresh data every 30 seconds
@@ -1361,6 +1502,60 @@
             document.getElementById('statusFilter').addEventListener('change', filterPatients);
             document.getElementById('pendingSearchInput').addEventListener('input', debounce(filterPendingPatients, 300));
             document.getElementById('pendingServiceFilter').addEventListener('change', filterPendingPatients);
+        }
+
+        function setupServiceCheckboxListeners() {
+            // Registration form service checkboxes
+            const regCheckboxes = document.querySelectorAll('#servicesCheckboxes input[type="checkbox"]');
+            regCheckboxes.forEach(checkbox => {
+                checkbox.addEventListener('change', function() {
+                    updateServiceCheckboxStyle(this);
+                    validateServices('registration');
+                });
+            });
+
+            // Edit form service checkboxes
+            const editCheckboxes = document.querySelectorAll('#editServicesCheckboxes input[type="checkbox"]');
+            editCheckboxes.forEach(checkbox => {
+                checkbox.addEventListener('change', function() {
+                    updateServiceCheckboxStyle(this);
+                    validateServices('edit');
+                });
+            });
+        }
+
+        function updateServiceCheckboxStyle(checkbox) {
+            const serviceCheckbox = checkbox.closest('.service-checkbox');
+            if (checkbox.checked) {
+                serviceCheckbox.classList.add('selected');
+            } else {
+                serviceCheckbox.classList.remove('selected');
+            }
+        }
+
+        function validateServices(formType) {
+            const checkboxSelector = formType === 'edit' ? '#editServicesCheckboxes' : '#servicesCheckboxes';
+            const validationId = formType === 'edit' ? 'editServicesValidation' : 'servicesValidation';
+            const validationTextId = formType === 'edit' ? 'editServicesValidationText' : 'servicesValidationText';
+            
+            const selectedServices = getSelectedServices(checkboxSelector);
+            const validationDiv = document.getElementById(validationId);
+            const validationText = document.getElementById(validationTextId);
+            
+            if (selectedServices.length === 0) {
+                validationDiv.className = 'services-validation error';
+                validationText.innerHTML = '⚠️ Please select at least one service';
+                return false;
+            } else {
+                validationDiv.className = 'services-validation success';
+                validationText.innerHTML = `✅ ${selectedServices.length} service${selectedServices.length > 1 ? 's' : ''} selected: ${selectedServices.join(', ')}`;
+                return true;
+            }
+        }
+
+        function getSelectedServices(containerSelector) {
+            const checkboxes = document.querySelectorAll(`${containerSelector} input[type="checkbox"]:checked`);
+            return Array.from(checkboxes).map(checkbox => checkbox.value);
         }
 
         // Utility function for debouncing
@@ -1412,7 +1607,7 @@
             }
         }
 
-        // API functions using simplified endpoints
+        // API functions using multi-service endpoints
         async function apiRequest(endpoint, options = {}) {
             try {
                 const url = `${API_BASE_URL}${endpoint}`;
@@ -1435,7 +1630,7 @@
                     let errorMessage = `HTTP error! status: ${response.status}`;
                     try {
                         const errorData = await response.json();
-                        errorMessage = errorData.error || errorMessage;
+                        errorMessage = errorData.error || errorData.message || errorMessage;
                     } catch (parseError) {
                         console.error('Could not parse error response:', parseError);
                     }
@@ -1456,7 +1651,7 @@
             try {
                 console.log('📋 Loading all patients...');
                 const data = await apiRequest('/patients');
-                patients = Array.isArray(data) ? data : [];
+                patients = Array.isArray(data) ? data : (data.data || []);
                 updateAllViews();
                 updateConnectionStatus(true);
                 console.log(`✅ Loaded ${patients.length} patients`);
@@ -1510,12 +1705,10 @@
                 updatePendingView();
             } else if (tabName === 'registration') {
                 clearRegistrationForm();
-            } else if (tabName === 'reports') {
-                // Reports view - no special action needed
             }
         }
 
-        // Enhanced registration function
+        // Enhanced registration function with multi-service support
         async function registerPatient() {
             const name = document.getElementById('regName').value.trim();
             const age = document.getElementById('regAge').value.trim();
@@ -1523,11 +1716,17 @@
             const occupation = document.getElementById('regOccupation').value.trim();
             const tel = document.getElementById('regTel').value.trim();
             const familyGroup = document.getElementById('regFamilyGroup').value;
-            const service = document.getElementById('regService').value;
+            const selectedServices = getSelectedServices('#servicesCheckboxes');
 
             // Enhanced validation
-            if (!name || !age || !sex || !tel || !familyGroup || !service) {
+            if (!name || !age || !sex || !tel || !familyGroup) {
                 showAlert('registrationAlert', '⚠️ Please fill in all required fields', 'error');
+                return;
+            }
+
+            if (selectedServices.length === 0) {
+                showAlert('registrationAlert', '⚠️ Please select at least one service', 'error');
+                validateServices('registration');
                 return;
             }
 
@@ -1544,20 +1743,21 @@
             try {
                 const newPatient = {
                     name,
-                    age,
+                    age: parseInt(age),
                     sex,
                     occupation,
                     tel,
                     familyGroup,
-                    service
+                    services: selectedServices,
+                    service: selectedServices[0] // Include first service for backward compatibility
                 };
 
-                await apiRequest('/patients', {
+                const response = await apiRequest('/patients', {
                     method: 'POST',
                     body: JSON.stringify(newPatient)
                 });
 
-                showAlert('registrationAlert', '🎉 Patient registered successfully! They are now pending tests.', 'success');
+                showAlert('registrationAlert', `🎉 Patient registered successfully for ${selectedServices.length} service${selectedServices.length > 1 ? 's' : ''}! They are now pending tests.`, 'success');
                 clearRegistrationForm();
                 await loadAllPatients();
                 
@@ -1573,7 +1773,7 @@
             }
         }
 
-        // NEW: Edit patient function
+        // Enhanced update patient function with multi-service support
         async function updatePatient() {
             if (!editingPatient) return;
 
@@ -1583,11 +1783,17 @@
             const occupation = document.getElementById('editOccupation').value.trim();
             const tel = document.getElementById('editTel').value.trim();
             const familyGroup = document.getElementById('editFamilyGroup').value;
-            const service = document.getElementById('editService').value;
+            const selectedServices = getSelectedServices('#editServicesCheckboxes');
 
             // Enhanced validation
-            if (!name || !age || !sex || !tel || !familyGroup || !service) {
+            if (!name || !age || !sex || !tel || !familyGroup) {
                 showAlert('editAlert', '⚠️ Please fill in all required fields', 'error');
+                return;
+            }
+
+            if (selectedServices.length === 0) {
+                showAlert('editAlert', '⚠️ Please select at least one service', 'error');
+                validateServices('edit');
                 return;
             }
 
@@ -1605,12 +1811,13 @@
                 const updateData = {
                     id: editingPatient._id,
                     name,
-                    age,
+                    age: parseInt(age),
                     sex,
                     occupation,
                     tel,
                     familyGroup,
-                    service
+                    services: selectedServices,
+                    service: selectedServices[0] // Include first service for backward compatibility
                 };
 
                 await apiRequest('/patients', {
@@ -1618,7 +1825,7 @@
                     body: JSON.stringify(updateData)
                 });
 
-                showAlert('editAlert', '🎉 Patient information updated successfully!', 'success');
+                showAlert('editAlert', `🎉 Patient information updated successfully with ${selectedServices.length} service${selectedServices.length > 1 ? 's' : ''}!`, 'success');
                 
                 // Show success animation
                 updateBtn.innerHTML = '✅ Updated!';
@@ -1636,7 +1843,7 @@
             }
         }
 
-        // NEW: Delete patient function
+        // Delete patient function
         async function deletePatient(patientId) {
             try {
                 await apiRequest('/delete', {
@@ -1697,7 +1904,6 @@
                 
                 setTimeout(async () => {
                     await loadAllPatients();
-                    // Redirect to dashboard as requested
                     switchTab(null, 'dashboard');
                     showAlert('dashboardAlert', `✅ ${currentPatient.name}'s record has been completed successfully!`, 'success');
                 }, 1500);
@@ -1719,13 +1925,17 @@
             document.getElementById('completionForm').classList.remove('hidden');
             document.getElementById('completionForm').classList.add('slide-in');
             
-            // Show patient info with enhanced styling
+            // Show patient info with enhanced styling including services
+            const servicesDisplay = patient.services && patient.services.length > 0 
+                ? patient.services.join(', ') 
+                : (patient.service || 'Not specified');
+                
             document.getElementById('selectedPatientInfo').innerHTML = `
                 <h3 style="color: #1e40af; font-size: 1.4rem; font-weight: 700; margin-bottom: 15px;">
                     👤 ${patient.name}
                 </h3>
                 <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 15px; color: #1d4ed8; font-weight: 500;">
-                    <div>🏥 Service: ${patient.service}</div>
+                    <div>🏥 Services: ${servicesDisplay}</div>
                     <div>📅 Registered: ${patient.registrationDate}</div>
                     <div>📞 Phone: ${patient.tel}</div>
                     <div>👥 Family: ${patient.familyGroup}</div>
@@ -1736,7 +1946,7 @@
             clearCompletionForm();
         }
 
-        // NEW: Show edit form
+        // Enhanced show edit form with multi-service support
         function showEditForm(patient) {
             editingPatient = patient;
             
@@ -1754,14 +1964,39 @@
             document.getElementById('editOccupation').value = patient.occupation || '';
             document.getElementById('editTel').value = patient.tel;
             document.getElementById('editFamilyGroup').value = patient.familyGroup;
-            document.getElementById('editService').value = patient.service;
             
+            // Handle services - support both single service and multiple services
+            const patientServices = patient.services && patient.services.length > 0 
+                ? patient.services 
+                : (patient.service ? [patient.service] : []);
+            
+            // Clear all checkboxes first
+            document.querySelectorAll('#editServicesCheckboxes input[type="checkbox"]').forEach(checkbox => {
+                checkbox.checked = false;
+                updateServiceCheckboxStyle(checkbox);
+            });
+            
+            // Set selected services
+            patientServices.forEach(service => {
+                const checkbox = document.querySelector(`#editServicesCheckboxes input[value="${service}"]`);
+                if (checkbox) {
+                    checkbox.checked = true;
+                    updateServiceCheckboxStyle(checkbox);
+                }
+            });
+            
+            validateServices('edit');
             clearAlert('editAlert');
         }
 
-        // Enhanced patient details modal
+        // Enhanced patient details modal with multi-service support
         function showPatientDetails(patient) {
             currentPatient = patient;
+            
+            // Handle services display
+            const servicesDisplay = patient.services && patient.services.length > 0 
+                ? patient.services 
+                : (patient.service ? [patient.service] : []);
             
             let modalContent = `
                 <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 20px; margin-bottom: 25px;">
@@ -1776,12 +2011,18 @@
                     </div>
                     
                     <div style="padding: 20px; background: rgba(16, 185, 129, 0.1); border-radius: 12px; border-left: 4px solid var(--success);">
-                        <h4 style="color: var(--success); font-weight: 600; margin-bottom: 10px;">Contact & Service</h4>
+                        <h4 style="color: var(--success); font-weight: 600; margin-bottom: 10px;">Contact & Services</h4>
                         <div style="color: var(--dark); line-height: 1.8;">
                             <div><strong>Phone:</strong> ${patient.tel}</div>
                             <div><strong>Family Group:</strong> ${patient.familyGroup}</div>
-                            <div><strong>Service:</strong> ${patient.service}</div>
-                            <div><strong>Status:</strong> <span class="status-badge ${patient.status === 'completed' ? 'status-completed' : 'status-registered'}">${patient.status === 'completed' ? 'Completed' : 'Pending'}</span></div>
+                            <div><strong>Services:</strong></div>
+                            <div style="margin-top: 8px;">
+                                ${servicesDisplay.length > 0 ? 
+                                    servicesDisplay.map(service => `<span class="service-tag">${service}</span>`).join('') : 
+                                    '<span style="color: #6b7280;">No services specified</span>'
+                                }
+                            </div>
+                            <div style="margin-top: 8px;"><strong>Status:</strong> <span class="status-badge ${patient.status === 'completed' ? 'status-completed' : 'status-registered'}">${patient.status === 'completed' ? 'Completed' : 'Pending'}</span></div>
                         </div>
                     </div>
                 </div>
@@ -1810,7 +2051,7 @@
                             <strong style="color: var(--dark);">Lab Tests Performed:</strong>
                             <div style="background: white; padding: 10px; border-radius: 8px; margin-top: 5px;">
                                 ${patient.labTests && patient.labTests.length > 0 ? 
-                                    patient.labTests.map(test => `<span style="display: inline-block; background: var(--gradient-primary); color: white; padding: 4px 8px; border-radius: 6px; margin: 2px; font-size: 12px;">${test}</span>`).join('') : 
+                                    patient.labTests.map(test => `<span class="service-tag">${test}</span>`).join('') : 
                                     'No lab tests recorded'
                                 }
                             </div>
@@ -1859,13 +2100,12 @@
             showCompletionForm(currentPatient);
         }
 
-        // NEW: Edit patient info from modal
         function editPatientInfo() {
             closePatientModal();
             showEditForm(currentPatient);
         }
 
-        // NEW: Confirmation modal functions
+        // Confirmation modal functions
         function showConfirmationModal(title, message, icon, action) {
             document.getElementById('confirmationTitle').textContent = title;
             document.getElementById('confirmationMessage').textContent = message;
@@ -1977,9 +2217,12 @@
                 }
 
                 if (serviceFilter) {
-                    filteredPatients = filteredPatients.filter(patient => 
-                        patient.service === serviceFilter
-                    );
+                    filteredPatients = filteredPatients.filter(patient => {
+                        if (patient.services && patient.services.length > 0) {
+                            return patient.services.includes(serviceFilter);
+                        }
+                        return patient.service === serviceFilter;
+                    });
                 }
 
                 if (statusFilter) {
@@ -2004,7 +2247,16 @@
                     const isPending = patient.status === 'registered';
                     const matchesSearch = patient.name.toLowerCase().includes(searchTerm) ||
                                         patient.tel.includes(searchTerm);
-                    const matchesService = serviceFilter === '' || patient.service === serviceFilter;
+                    
+                    let matchesService = true;
+                    if (serviceFilter) {
+                        if (patient.services && patient.services.length > 0) {
+                            matchesService = patient.services.includes(serviceFilter);
+                        } else {
+                            matchesService = patient.service === serviceFilter;
+                        }
+                    }
+                    
                     return isPending && matchesSearch && matchesService;
                 });
 
@@ -2029,7 +2281,12 @@
                 return;
             }
 
-            tbody.innerHTML = patientsToShow.map(patient => `
+            tbody.innerHTML = patientsToShow.map(patient => {
+                const servicesDisplay = patient.services && patient.services.length > 0 
+                    ? patient.services 
+                    : (patient.service ? [patient.service] : []);
+                
+                return `
                 <tr onclick="showPatientDetails(${JSON.stringify(patient).replace(/"/g, '&quot;')})" style="cursor: pointer;">
                     <td>
                         <div style="display: flex; align-items: center; gap: 10px;">
@@ -2043,7 +2300,13 @@
                         </div>
                     </td>
                     <td>
-                        <div style="font-weight: 500; color: var(--primary); font-size: 13px;" title="${patient.service}">🏥 ${patient.service}</div>
+                        <div style="font-weight: 500; color: var(--primary); font-size: 13px;" title="${servicesDisplay.join(', ')}">
+                            ${servicesDisplay.length > 0 ? 
+                                servicesDisplay.slice(0, 2).map(service => `<span class="service-tag" style="font-size: 10px; padding: 2px 4px; margin: 1px;">${service}</span>`).join('') +
+                                (servicesDisplay.length > 2 ? `<div style="font-size: 10px; color: #6b7280;">+${servicesDisplay.length - 2} more</div>` : '')
+                                : '<span style="color: #6b7280;">None</span>'
+                            }
+                        </div>
                     </td>
                     <td>
                         <div style="font-weight: 500; font-size: 13px;">${patient.familyGroup}</div>
@@ -2071,7 +2334,7 @@
                             </button>
                         </div>
                     </td>
-                </tr>`).join('');
+                </tr>`}).join('');
         }
 
         function renderPendingPatients(pendingPatients) {
@@ -2088,7 +2351,12 @@
                 return;
             }
 
-            grid.innerHTML = pendingPatients.map(patient => `
+            grid.innerHTML = pendingPatients.map(patient => {
+                const servicesDisplay = patient.services && patient.services.length > 0 
+                    ? patient.services 
+                    : (patient.service ? [patient.service] : []);
+                
+                return `
                 <div class="patient-card" onclick="showCompletionForm(${JSON.stringify(patient).replace(/"/g, '&quot;')})">
                     <div style="display: flex; align-items: center; gap: 15px; margin-bottom: 15px;">
                         <div style="width: 50px; height: 50px; border-radius: 50%; background: var(--gradient-primary); display: flex; align-items: center; justify-content: center; color: white; font-weight: 700; font-size: 1.2rem;">
@@ -2096,7 +2364,12 @@
                         </div>
                         <div>
                             <div class="patient-name">${patient.name}</div>
-                            <div class="patient-service">🏥 ${patient.service}</div>
+                            <div style="color: var(--primary); font-weight: 600; margin-bottom: 8px;">
+                                ${servicesDisplay.length > 0 ? 
+                                    servicesDisplay.map(service => `<span class="service-tag" style="font-size: 10px; margin: 1px;">${service}</span>`).join('') : 
+                                    '<span style="color: #6b7280;">No services</span>'
+                                }
+                            </div>
                         </div>
                     </div>
                     
@@ -2117,7 +2390,7 @@
                         </div>
                     </div>
                 </div>
-            `).join('');
+            `}).join('');
         }
 
         // Enhanced Reports Functions
@@ -2145,10 +2418,16 @@
             const completedRecords = patients.filter(p => p.status === 'completed').length;
             const completionRate = totalPatients > 0 ? Math.round((completedRecords / totalPatients) * 100) : 0;
 
-            // Service breakdown
+            // Enhanced service breakdown - handle both single and multiple services
             const serviceBreakdown = {};
             patients.forEach(patient => {
-                serviceBreakdown[patient.service] = (serviceBreakdown[patient.service] || 0) + 1;
+                const patientServices = patient.services && patient.services.length > 0 
+                    ? patient.services 
+                    : (patient.service ? [patient.service] : []);
+                
+                patientServices.forEach(service => {
+                    serviceBreakdown[service] = (serviceBreakdown[service] || 0) + 1;
+                });
             });
 
             // Family group breakdown
@@ -2193,7 +2472,7 @@
                                 <span>${service}</span>
                                 <span style="background: var(--primary); color: white; padding: 4px 8px; border-radius: 8px; font-size: 12px; font-weight: 600;">${count}</span>
                             </div>
-                        `).join('')}
+                        `).join('') || '<div style="text-center; color: #6b7280; padding: 20px;">No services recorded</div>'}
                     </div>
 
                     <div style="background: white; padding: 25px; border-radius: 16px; box-shadow: var(--shadow);">
@@ -2231,24 +2510,32 @@
                         <div style="background: white; padding: 20px; border-radius: 16px; box-shadow: var(--shadow);">
                             <h5 style="color: var(--success); font-weight: 600; margin-bottom: 15px;">✅ Completed Patients (${completedPatients.length})</h5>
                             <div style="max-height: 200px; overflow-y: auto;">
-                                ${completedPatients.map(patient => `
+                                ${completedPatients.map(patient => {
+                                    const servicesDisplay = patient.services && patient.services.length > 0 
+                                        ? patient.services.join(', ') 
+                                        : (patient.service || 'No services');
+                                    return `
                                     <div style="padding: 8px 0; border-bottom: 1px solid #e5e7eb; font-size: 14px;">
-                                        <strong>${patient.name}</strong> - ${patient.service}
+                                        <strong>${patient.name}</strong> - ${servicesDisplay}
                                         <div style="color: #6b7280; font-size: 12px;">Completed: ${patient.completionDate}</div>
                                     </div>
-                                `).join('') || '<div style="color: #6b7280; text-align: center; padding: 20px;">No completed patients</div>'}
+                                `;}).join('') || '<div style="color: #6b7280; text-align: center; padding: 20px;">No completed patients</div>'}
                             </div>
                         </div>
 
                         <div style="background: white; padding: 20px; border-radius: 16px; box-shadow: var(--shadow);">
                             <h5 style="color: var(--warning); font-weight: 600; margin-bottom: 15px;">⏳ Pending Patients (${pendingPatients.length})</h5>
                             <div style="max-height: 200px; overflow-y: auto;">
-                                ${pendingPatients.map(patient => `
+                                ${pendingPatients.map(patient => {
+                                    const servicesDisplay = patient.services && patient.services.length > 0 
+                                        ? patient.services.join(', ') 
+                                        : (patient.service || 'No services');
+                                    return `
                                     <div style="padding: 8px 0; border-bottom: 1px solid #e5e7eb; font-size: 14px;">
-                                        <strong>${patient.name}</strong> - ${patient.service}
+                                        <strong>${patient.name}</strong> - ${servicesDisplay}
                                         <div style="color: #6b7280; font-size: 12px;">Registered: ${patient.registrationDate}</div>
                                     </div>
-                                `).join('') || '<div style="color: #6b7280; text-align: center; padding: 20px;">No pending patients</div>'}
+                                `;}).join('') || '<div style="color: #6b7280; text-align: center; padding: 20px;">No pending patients</div>'}
                             </div>
                         </div>
                     </div>
@@ -2274,6 +2561,7 @@
             try {
                 const dataToExport = {
                     exportDate: new Date().toISOString(),
+                    exportedBy: 'Health Campaign System v3.1.0 - Premium Multi-Service',
                     totalPatients: patients.length,
                     patients: patients.map(patient => ({
                         ...patient,
@@ -2308,7 +2596,16 @@
             document.getElementById('regOccupation').value = '';
             document.getElementById('regTel').value = '';
             document.getElementById('regFamilyGroup').value = '';
-            document.getElementById('regService').value = '';
+            
+            // Clear all service checkboxes
+            document.querySelectorAll('#servicesCheckboxes input[type="checkbox"]').forEach(checkbox => {
+                checkbox.checked = false;
+                updateServiceCheckboxStyle(checkbox);
+            });
+            
+            // Hide validation message
+            document.getElementById('servicesValidation').classList.add('hidden');
+            
             clearAlert('registrationAlert');
         }
 
@@ -2364,7 +2661,32 @@
                 closeConfirmationModal();
                 closeReport();
             }
+            
+            // Quick navigation shortcuts
+            if (e.ctrlKey || e.metaKey) {
+                switch(e.key) {
+                    case '1':
+                        e.preventDefault();
+                        switchTab({target: document.querySelector('.nav-item')}, 'dashboard');
+                        break;
+                    case '2':
+                        e.preventDefault();
+                        switchTab({target: document.querySelectorAll('.nav-item')[1]}, 'pending');
+                        break;
+                    case '3':
+                        e.preventDefault();
+                        switchTab({target: document.querySelectorAll('.nav-item')[2]}, 'registration');
+                        break;
+                    case '4':
+                        e.preventDefault();
+                        switchTab({target: document.querySelectorAll('.nav-item')[3]}, 'reports');
+                        break;
+                }
+            }
         });
+
+        console.log('🏥 Health Campaign Management System v3.1.0 - Premium Multi-Service Edition Loaded');
+        console.log('✨ Features: Multi-service selection, Premium UI, Real-time updates, Professional design');
     </script>
 </body>
 </html>
