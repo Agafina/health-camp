@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Health Campaign Management - Premium</title>
+    <title>Health Campaign Management - Premium Enhanced</title>
     <style>
         * {
             margin: 0;
@@ -319,6 +319,20 @@
             margin-bottom: 25px;
         }
 
+        .form-grid-2 {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 20px;
+            margin-bottom: 25px;
+        }
+
+        .form-grid-3 {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+            gap: 15px;
+            margin-bottom: 25px;
+        }
+
         .form-group {
             margin-bottom: 25px;
         }
@@ -550,7 +564,7 @@
             background: var(--gradient-card);
             border-radius: 24px;
             padding: 40px;
-            max-width: 600px;
+            max-width: 900px;
             width: 90%;
             max-height: 90vh;
             overflow-y: auto;
@@ -798,6 +812,225 @@
             display: none !important;
         }
 
+        /* Vital Signs Grid */
+        .vital-signs-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 20px;
+            margin-bottom: 25px;
+        }
+
+        .vital-signs-title {
+            grid-column: 1 / -1;
+            font-size: 1.2rem;
+            font-weight: 600;
+            color: var(--primary);
+            margin-bottom: 10px;
+            padding: 15px 20px;
+            background: rgba(99, 102, 241, 0.1);
+            border-radius: 12px;
+            border-left: 4px solid var(--primary);
+        }
+
+        /* Two Column Layout for Completion Form */
+        .completion-layout {
+            display: grid;
+            grid-template-columns: 2fr 1fr;
+            gap: 30px;
+            align-items: start;
+        }
+
+        .main-form {
+            background: var(--gradient-card);
+            border-radius: 20px;
+            padding: 30px;
+            box-shadow: var(--shadow-lg);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+        }
+
+        .side-panel {
+            background: var(--gradient-card);
+            border-radius: 20px;
+            padding: 25px;
+            box-shadow: var(--shadow-lg);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            position: sticky;
+            top: 20px;
+        }
+
+        .side-panel h4 {
+            color: var(--primary);
+            font-weight: 600;
+            margin-bottom: 15px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        /* Checkbox Grid for Lab Tests */
+        .checkbox-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 15px;
+            margin-bottom: 20px;
+        }
+
+        .checkbox-item {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            padding: 12px 16px;
+            border-radius: 12px;
+            background: rgba(255, 255, 255, 0.5);
+            border: 2px solid transparent;
+            transition: all 0.3s ease;
+            cursor: pointer;
+        }
+
+        .checkbox-item:hover {
+            background: rgba(99, 102, 241, 0.1);
+            border-color: var(--primary);
+        }
+
+        .checkbox-item.selected {
+            background: rgba(99, 102, 241, 0.1);
+            border-color: var(--primary);
+        }
+
+        .checkbox-item input[type="checkbox"] {
+            width: 20px;
+            height: 20px;
+            accent-color: var(--primary);
+        }
+
+        .checkbox-item label {
+            font-weight: 500;
+            cursor: pointer;
+            color: var(--dark);
+        }
+
+        /* Others Input for Lab Tests */
+        .others-input-container {
+            margin-top: 15px;
+            padding: 15px 20px;
+            background: rgba(255, 255, 255, 0.7);
+            border-radius: 12px;
+            border: 2px solid var(--border);
+        }
+
+        .others-input-container.active {
+            border-color: var(--primary);
+            background: rgba(99, 102, 241, 0.05);
+        }
+
+        /* Report Statistics Cards */
+        .report-stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 25px;
+            margin-bottom: 30px;
+        }
+
+        .stat-breakdown-card {
+            background: var(--gradient-card);
+            border-radius: 20px;
+            padding: 25px;
+            box-shadow: var(--shadow-lg);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+        }
+
+        .stat-breakdown-title {
+            font-size: 1.2rem;
+            font-weight: 700;
+            color: var(--primary);
+            margin-bottom: 20px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .breakdown-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 12px 0;
+            border-bottom: 1px solid rgba(229, 231, 235, 0.3);
+        }
+
+        .breakdown-item:last-child {
+            border-bottom: none;
+        }
+
+        .breakdown-label {
+            font-weight: 500;
+            color: var(--dark);
+        }
+
+        .breakdown-value {
+            font-weight: 700;
+            color: var(--primary);
+            padding: 4px 12px;
+            background: rgba(99, 102, 241, 0.1);
+            border-radius: 8px;
+        }
+
+        .breakdown-percentage {
+            font-size: 0.85rem;
+            color: #6b7280;
+            margin-left: 8px;
+        }
+
+        /* Enhanced Patient Modal */
+        .patient-details-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 20px;
+            margin-bottom: 25px;
+        }
+
+        .detail-card {
+            padding: 20px;
+            border-radius: 12px;
+            border-left: 4px solid;
+        }
+
+        .detail-card.personal {
+            background: rgba(99, 102, 241, 0.1);
+            border-left-color: var(--primary);
+        }
+
+        .detail-card.contact {
+            background: rgba(16, 185, 129, 0.1);
+            border-left-color: var(--success);
+        }
+
+        .detail-card.vitals {
+            background: rgba(245, 158, 11, 0.1);
+            border-left-color: var(--warning);
+        }
+
+        .detail-card.medical {
+            background: rgba(59, 130, 246, 0.1);
+            border-left-color: var(--info);
+        }
+
+        .detail-card h4 {
+            font-weight: 600;
+            margin-bottom: 10px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .detail-card .detail-item {
+            margin-bottom: 8px;
+            line-height: 1.6;
+        }
+
+        .detail-card .detail-item strong {
+            color: var(--dark);
+        }
+
         /* Responsive Design */
         @media (max-width: 768px) {
             .main-container {
@@ -830,6 +1063,18 @@
                 grid-template-columns: 1fr;
             }
 
+            .form-grid-2 {
+                grid-template-columns: 1fr;
+            }
+
+            .form-grid-3 {
+                grid-template-columns: repeat(2, 1fr);
+            }
+
+            .vital-signs-grid {
+                grid-template-columns: repeat(2, 1fr);
+            }
+
             .services-grid {
                 grid-template-columns: 1fr;
             }
@@ -843,6 +1088,16 @@
                 width: 95%;
             }
 
+            .completion-layout {
+                grid-template-columns: 1fr;
+                gap: 20px;
+            }
+
+            .side-panel {
+                position: static;
+                order: -1;
+            }
+
             .action-buttons {
                 flex-direction: column;
                 gap: 4px;
@@ -853,6 +1108,18 @@
                 justify-content: center;
                 font-size: 10px;
                 padding: 4px 8px;
+            }
+
+            .checkbox-grid {
+                grid-template-columns: 1fr;
+            }
+
+            .report-stats-grid {
+                grid-template-columns: 1fr;
+            }
+
+            .patient-details-grid {
+                grid-template-columns: 1fr;
             }
 
             /* Mobile table adjustments */
@@ -923,42 +1190,6 @@
             color: #6b7280;
             font-size: 18px;
         }
-
-        /* Checkbox Styling */
-        .checkbox-grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-            gap: 15px;
-        }
-
-        .checkbox-item {
-            display: flex;
-            align-items: center;
-            gap: 12px;
-            padding: 12px 16px;
-            border-radius: 12px;
-            background: rgba(255, 255, 255, 0.5);
-            border: 2px solid transparent;
-            transition: all 0.3s ease;
-            cursor: pointer;
-        }
-
-        .checkbox-item:hover {
-            background: rgba(99, 102, 241, 0.1);
-            border-color: var(--primary);
-        }
-
-        .checkbox-item input[type="checkbox"] {
-            width: 20px;
-            height: 20px;
-            accent-color: var(--primary);
-        }
-
-        .checkbox-item label {
-            font-weight: 500;
-            cursor: pointer;
-            color: var(--dark);
-        }
     </style>
 </head>
 <body>
@@ -969,7 +1200,7 @@
         <!-- Premium Header -->
         <div class="premium-header slide-in">
             <h1>🏥 Health Campaign Management</h1>
-            <p>Advanced patient registration and medical records management system with multi-service support</p>
+            <p>Advanced patient registration and medical records management system with enhanced vital signs, past history, and comprehensive reporting</p>
         </div>
 
         <!-- Premium Navigation -->
@@ -1106,12 +1337,13 @@
 
         <!-- Registration Form -->
         <div id="registration" class="hidden">
-            <div class="premium-card" style="max-width: 800px; margin: 0 auto;">
+            <div class="premium-card" style="max-width: 1000px; margin: 0 auto;">
                 <h2 style="font-size: 1.8rem; font-weight: 700; margin-bottom: 10px; color: var(--dark);">Patient Registration</h2>
-                <p style="color: #6b7280; margin-bottom: 30px;">Register new patients for health campaign services - Select one or more services</p>
+                <p style="color: #6b7280; margin-bottom: 30px;">Register new patients for health campaign services with complete vital signs and medical history</p>
 
                 <div id="registrationAlert"></div>
                 
+                <!-- Basic Information -->
                 <div class="form-grid">
                     <div class="form-group">
                         <label class="form-label">Full Name *</label>
@@ -1153,6 +1385,33 @@
                         <option value="UBACDA">UBACDA</option>
                         <option value="OTHERS">OTHERS</option>
                     </select>
+                </div>
+
+                <!-- Vital Signs Section -->
+                <div class="vital-signs-grid">
+                    <div class="vital-signs-title">
+                        🩺 Vital Signs
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">Height (cm)</label>
+                        <input type="number" class="form-input" id="regHeight" placeholder="Enter height in cm" step="0.1">
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">Weight (kg)</label>
+                        <input type="number" class="form-input" id="regWeight" placeholder="Enter weight in kg" step="0.1">
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">Blood Pressure</label>
+                        <input type="text" class="form-input" id="regBloodPressure" placeholder="e.g., 120/80 mmHg">
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">Pulse (bpm)</label>
+                        <input type="number" class="form-input" id="regPulse" placeholder="Enter pulse rate">
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">Temperature (°C)</label>
+                        <input type="number" class="form-input" id="regTemperature" placeholder="Enter temperature" step="0.1">
+                    </div>
                 </div>
 
                 <!-- Multi-Service Selection -->
@@ -1204,7 +1463,7 @@
         <div id="reports" class="hidden">
             <div class="premium-card">
                 <h2 style="font-size: 1.8rem; font-weight: 700; margin-bottom: 10px; color: var(--dark);">📈 System Reports</h2>
-                <p style="color: #6b7280; margin-bottom: 30px;">Comprehensive analytics and reporting dashboard</p>
+                <p style="color: #6b7280; margin-bottom: 30px;">Comprehensive analytics and reporting dashboard with demographics and statistics</p>
                 
                 <div class="form-grid">
                     <button class="btn btn-primary" onclick="generateReport('summary')">
@@ -1231,97 +1490,139 @@
 
         <!-- Complete Record Form -->
         <div id="completionForm" class="hidden">
-            <div class="premium-card" style="max-width: 800px; margin: 0 auto;">
-                <div style="display: flex; align-items: center; gap: 15px; margin-bottom: 30px;">
-                    <button class="btn btn-secondary" onclick="switchTab(null, 'dashboard')" style="padding: 12px 16px;">
-                        ← Back
-                    </button>
-                    <h2 style="font-size: 1.8rem; font-weight: 700; color: var(--dark); margin: 0;">Complete Medical Record</h2>
-                </div>
+            <div style="display: flex; align-items: center; gap: 15px; margin-bottom: 30px;">
+                <button class="btn btn-secondary" onclick="switchTab(null, 'dashboard')" style="padding: 12px 16px;">
+                    ← Back
+                </button>
+                <h2 style="font-size: 1.8rem; font-weight: 700; color: var(--dark); margin: 0;">Complete Medical Record</h2>
+            </div>
 
-                <div id="selectedPatientInfo" class="premium-card" style="background: linear-gradient(135deg, #eff6ff, #dbeafe); border: 2px solid #3b82f6; margin-bottom: 30px;">
-                </div>
+            <div class="completion-layout">
+                <!-- Main Form -->
+                <div class="main-form">
+                    <div id="selectedPatientInfo" class="premium-card" style="background: linear-gradient(135deg, #eff6ff, #dbeafe); border: 2px solid #3b82f6; margin-bottom: 30px;">
+                    </div>
 
-                <div id="completionAlert"></div>
+                    <div id="completionAlert"></div>
 
-                <div class="form-group">
-                    <label class="form-label">Diagnosis</label>
-                    <textarea class="form-textarea" id="compDiagnosis" placeholder="Enter detailed diagnosis..."></textarea>
-                </div>
+                    <div class="form-group">
+                        <label class="form-label">Diagnosis</label>
+                        <textarea class="form-textarea" id="compDiagnosis" placeholder="Enter detailed diagnosis..."></textarea>
+                    </div>
 
-                <div class="form-group">
-                    <label class="form-label">Lab Tests Performed</label>
-                    <div class="checkbox-grid">
-                        <div class="checkbox-item">
-                            <input type="checkbox" id="labMalaria" value="Malaria">
-                            <label for="labMalaria">🦠 Malaria Test</label>
+                    <div class="form-group">
+                        <label class="form-label">Lab Tests Performed</label>
+                        <div class="checkbox-grid">
+                            <div class="checkbox-item">
+                                <input type="checkbox" id="labMalaria" value="Malaria">
+                                <label for="labMalaria">🦠 Malaria Test</label>
+                            </div>
+                            <div class="checkbox-item">
+                                <input type="checkbox" id="labHIV" value="HIV">
+                                <label for="labHIV">🔬 HIV Test</label>
+                            </div>
+                            <div class="checkbox-item">
+                                <input type="checkbox" id="labHBV" value="HBV">
+                                <label for="labHBV">🔬 HBV Test</label>
+                            </div>
+                            <div class="checkbox-item">
+                                <input type="checkbox" id="labHCV" value="HCV">
+                                <label for="labHCV">🔬 HCV Test</label>
+                            </div>
+                            <div class="checkbox-item">
+                                <input type="checkbox" id="labBloodGrouping" value="Blood grouping">
+                                <label for="labBloodGrouping">🩸 Blood Grouping</label>
+                            </div>
+                            <div class="checkbox-item">
+                                <input type="checkbox" id="labBloodGlucose" value="Blood glucose">
+                                <label for="labBloodGlucose">📊 Blood Glucose</label>
+                            </div>
+                            <div class="checkbox-item">
+                                <input type="checkbox" id="labSyphilis" value="Syphilis">
+                                <label for="labSyphilis">🔬 Syphilis Test</label>
+                            </div>
+                            <div class="checkbox-item">
+                                <input type="checkbox" id="labUltrasound" value="Ultrasound">
+                                <label for="labUltrasound">📡 Ultrasound</label>
+                            </div>
+                            <div class="checkbox-item">
+                                <input type="checkbox" id="labXray" value="X-ray">
+                                <label for="labXray">📷 X-ray</label>
+                            </div>
+                            <div class="checkbox-item">
+                                <input type="checkbox" id="labECG" value="ECG">
+                                <label for="labECG">💓 ECG</label>
+                            </div>
+                            <div class="checkbox-item">
+                                <input type="checkbox" id="labUrinalysis" value="Urinalysis">
+                                <label for="labUrinalysis">🧪 Urinalysis</label>
+                            </div>
+                            <div class="checkbox-item">
+                                <input type="checkbox" id="labLipidProfile" value="Lipid Profile">
+                                <label for="labLipidProfile">📈 Lipid Profile</label>
+                            </div>
+                            <div class="checkbox-item">
+                                <input type="checkbox" id="labOthersCheckbox" value="Others" onchange="toggleOthersInput()">
+                                <label for="labOthersCheckbox">📝 Others</label>
+                            </div>
                         </div>
-                        <div class="checkbox-item">
-                            <input type="checkbox" id="labHIV" value="HIV">
-                            <label for="labHIV">🔬 HIV Test</label>
+                        
+                        <!-- Others Input -->
+                        <div id="othersInputContainer" class="others-input-container hidden">
+                            <label class="form-label">Specify Other Tests:</label>
+                            <input type="text" class="form-input" id="labOthersInput" placeholder="Enter other lab tests separated by commas">
                         </div>
-                        <div class="checkbox-item">
-                            <input type="checkbox" id="labHBV" value="HBV">
-                            <label for="labHBV">🔬 HBV Test</label>
-                        </div>
-                        <div class="checkbox-item">
-                            <input type="checkbox" id="labHCV" value="HCV">
-                            <label for="labHCV">🔬 HCV Test</label>
-                        </div>
-                        <div class="checkbox-item">
-                            <input type="checkbox" id="labBloodGrouping" value="Blood grouping">
-                            <label for="labBloodGrouping">🩸 Blood Grouping</label>
-                        </div>
-                        <div class="checkbox-item">
-                            <input type="checkbox" id="labBloodGlucose" value="Blood glucose">
-                            <label for="labBloodGlucose">📊 Blood Glucose</label>
-                        </div>
-                        <div class="checkbox-item">
-                            <input type="checkbox" id="labSyphilis" value="Syphilis">
-                            <label for="labSyphilis">🔬 Syphilis Test</label>
-                        </div>
-                        <div class="checkbox-item">
-                            <input type="checkbox" id="labUltrasound" value="Ultrasound">
-                            <label for="labUltrasound">📡 Ultrasound</label>
-                        </div>
-                        <div class="checkbox-item">
-                            <input type="checkbox" id="labXray" value="X-ray">
-                            <label for="labXray">📷 X-ray</label>
-                        </div>
-                        <div class="checkbox-item">
-                            <input type="checkbox" id="labECG" value="ECG">
-                            <label for="labECG">💓 ECG</label>
-                        </div>
-                        <div class="checkbox-item">
-                            <input type="checkbox" id="labUrinalysis" value="Urinalysis">
-                            <label for="labUrinalysis">🧪 Urinalysis</label>
-                        </div>
-                        <div class="checkbox-item">
-                            <input type="checkbox" id="labLipidProfile" value="Lipid Profile">
-                            <label for="labLipidProfile">📈 Lipid Profile</label>
-                        </div>
+                    </div>
+
+                    <div class="form-group">
+                        <label class="form-label">Treatment Plan</label>
+                        <textarea class="form-textarea" id="compTreatmentPlan" placeholder="Enter detailed treatment plan and recommendations..."></textarea>
+                    </div>
+
+                    <div style="display: flex; gap: 20px; margin-top: 30px;">
+                        <button class="btn btn-success" style="flex: 1;" onclick="completeRecord()" id="completeBtn">
+                            💾 Complete Record
+                        </button>
+                        <button class="btn btn-secondary" onclick="switchTab(null, 'dashboard')">
+                            ❌ Cancel
+                        </button>
                     </div>
                 </div>
 
-                <div class="form-group">
-                    <label class="form-label">Treatment Plan</label>
-                    <textarea class="form-textarea" id="compTreatmentPlan" placeholder="Enter detailed treatment plan and recommendations..."></textarea>
-                </div>
-
-                <div style="display: flex; gap: 20px; margin-top: 30px;">
-                    <button class="btn btn-success" style="flex: 1;" onclick="completeRecord()" id="completeBtn">
-                        💾 Complete Record
-                    </button>
-                    <button class="btn btn-secondary" onclick="switchTab(null, 'dashboard')">
-                        ❌ Cancel
-                    </button>
+                <!-- Side Panel for Past History -->
+                <div class="side-panel">
+                    <h4>📋 Relevant Past History</h4>
+                    <div class="form-group">
+                        <label class="form-label">Past Medical History</label>
+                        <textarea class="form-textarea" id="pastMedicalHistory" placeholder="Previous illnesses, surgeries, hospitalizations..." style="min-height: 100px;"></textarea>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label class="form-label">Current Medications</label>
+                        <textarea class="form-textarea" id="currentMedications" placeholder="List current medications and dosages..." style="min-height: 80px;"></textarea>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label class="form-label">Allergies</label>
+                        <textarea class="form-textarea" id="allergies" placeholder="Drug allergies, food allergies, environmental allergies..." style="min-height: 70px;"></textarea>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label class="form-label">Family History</label>
+                        <textarea class="form-textarea" id="familyHistory" placeholder="Relevant family medical history..." style="min-height: 80px;"></textarea>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label class="form-label">Social History</label>
+                        <textarea class="form-textarea" id="socialHistory" placeholder="Smoking, alcohol, lifestyle factors..." style="min-height: 70px;"></textarea>
+                    </div>
                 </div>
             </div>
         </div>
 
         <!-- Edit Patient Form -->
         <div id="editForm" class="hidden">
-            <div class="premium-card" style="max-width: 800px; margin: 0 auto;">
+            <div class="premium-card" style="max-width: 1000px; margin: 0 auto;">
                 <div style="display: flex; align-items: center; gap: 15px; margin-bottom: 30px;">
                     <button class="btn btn-secondary" onclick="switchTab(null, 'dashboard')" style="padding: 12px 16px;">
                         ← Back
@@ -1331,6 +1632,7 @@
 
                 <div id="editAlert"></div>
                 
+                <!-- Basic Information -->
                 <div class="form-grid">
                     <div class="form-group">
                         <label class="form-label">Full Name *</label>
@@ -1372,6 +1674,33 @@
                         <option value="UBACDA">UBACDA</option>
                         <option value="OTHERS">OTHERS</option>
                     </select>
+                </div>
+
+                <!-- Vital Signs Section -->
+                <div class="vital-signs-grid">
+                    <div class="vital-signs-title">
+                        🩺 Vital Signs
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">Height (cm)</label>
+                        <input type="number" class="form-input" id="editHeight" placeholder="Enter height in cm" step="0.1">
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">Weight (kg)</label>
+                        <input type="number" class="form-input" id="editWeight" placeholder="Enter weight in kg" step="0.1">
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">Blood Pressure</label>
+                        <input type="text" class="form-input" id="editBloodPressure" placeholder="e.g., 120/80 mmHg">
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">Pulse (bpm)</label>
+                        <input type="number" class="form-input" id="editPulse" placeholder="Enter pulse rate">
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">Temperature (°C)</label>
+                        <input type="number" class="form-input" id="editTemperature" placeholder="Enter temperature" step="0.1">
+                    </div>
                 </div>
 
                 <!-- Multi-Service Selection for Edit -->
@@ -1558,6 +1887,23 @@
             return Array.from(checkboxes).map(checkbox => checkbox.value);
         }
 
+        // Toggle Others Input for Lab Tests
+        function toggleOthersInput() {
+            const checkbox = document.getElementById('labOthersCheckbox');
+            const container = document.getElementById('othersInputContainer');
+            const input = document.getElementById('labOthersInput');
+            
+            if (checkbox.checked) {
+                container.classList.remove('hidden');
+                container.classList.add('active');
+                input.focus();
+            } else {
+                container.classList.add('hidden');
+                container.classList.remove('active');
+                input.value = '';
+            }
+        }
+
         // Utility function for debouncing
         function debounce(func, wait) {
             let timeout;
@@ -1708,7 +2054,7 @@
             }
         }
 
-        // Enhanced registration function with multi-service support
+        // Enhanced registration function with vital signs support
         async function registerPatient() {
             const name = document.getElementById('regName').value.trim();
             const age = document.getElementById('regAge').value.trim();
@@ -1717,6 +2063,15 @@
             const tel = document.getElementById('regTel').value.trim();
             const familyGroup = document.getElementById('regFamilyGroup').value;
             const selectedServices = getSelectedServices('#servicesCheckboxes');
+
+            // Vital signs
+            const vitalSigns = {
+                height: document.getElementById('regHeight').value.trim(),
+                weight: document.getElementById('regWeight').value.trim(),
+                bloodPressure: document.getElementById('regBloodPressure').value.trim(),
+                pulse: document.getElementById('regPulse').value.trim(),
+                temperature: document.getElementById('regTemperature').value.trim()
+            };
 
             // Enhanced validation
             if (!name || !age || !sex || !tel || !familyGroup) {
@@ -1749,7 +2104,8 @@
                     tel,
                     familyGroup,
                     services: selectedServices,
-                    service: selectedServices[0] // Include first service for backward compatibility
+                    service: selectedServices[0], // Include first service for backward compatibility
+                    vitalSigns: vitalSigns
                 };
 
                 const response = await apiRequest('/patients', {
@@ -1773,7 +2129,7 @@
             }
         }
 
-        // Enhanced update patient function with multi-service support
+        // Enhanced update patient function with vital signs support
         async function updatePatient() {
             if (!editingPatient) return;
 
@@ -1784,6 +2140,15 @@
             const tel = document.getElementById('editTel').value.trim();
             const familyGroup = document.getElementById('editFamilyGroup').value;
             const selectedServices = getSelectedServices('#editServicesCheckboxes');
+
+            // Vital signs
+            const vitalSigns = {
+                height: document.getElementById('editHeight').value.trim(),
+                weight: document.getElementById('editWeight').value.trim(),
+                bloodPressure: document.getElementById('editBloodPressure').value.trim(),
+                pulse: document.getElementById('editPulse').value.trim(),
+                temperature: document.getElementById('editTemperature').value.trim()
+            };
 
             // Enhanced validation
             if (!name || !age || !sex || !tel || !familyGroup) {
@@ -1817,7 +2182,8 @@
                     tel,
                     familyGroup,
                     services: selectedServices,
-                    service: selectedServices[0] // Include first service for backward compatibility
+                    service: selectedServices[0], // Include first service for backward compatibility
+                    vitalSigns: vitalSigns
                 };
 
                 await apiRequest('/patients', {
@@ -1859,7 +2225,7 @@
             }
         }
 
-        // Enhanced complete record function
+        // Enhanced complete record function with past history
         async function completeRecord() {
             if (!currentPatient) return;
 
@@ -1870,8 +2236,25 @@
             const labTests = [];
             const checkboxes = document.querySelectorAll('#completionForm input[type="checkbox"]:checked');
             checkboxes.forEach(checkbox => {
-                labTests.push(checkbox.value);
+                if (checkbox.value === 'Others') {
+                    const othersInput = document.getElementById('labOthersInput').value.trim();
+                    if (othersInput) {
+                        const otherTests = othersInput.split(',').map(test => test.trim()).filter(test => test);
+                        labTests.push(...otherTests);
+                    }
+                } else {
+                    labTests.push(checkbox.value);
+                }
             });
+
+            // Get past history
+            const pastHistory = {
+                pastMedicalHistory: document.getElementById('pastMedicalHistory').value.trim(),
+                currentMedications: document.getElementById('currentMedications').value.trim(),
+                allergies: document.getElementById('allergies').value.trim(),
+                familyHistory: document.getElementById('familyHistory').value.trim(),
+                socialHistory: document.getElementById('socialHistory').value.trim()
+            };
 
             // Basic validation
             if (!diagnosis && !treatmentPlan && labTests.length === 0) {
@@ -1889,6 +2272,7 @@
                     diagnosis,
                     labTests,
                     treatmentPlan,
+                    pastHistory,
                     status: 'completed'
                 };
 
@@ -1925,10 +2309,27 @@
             document.getElementById('completionForm').classList.remove('hidden');
             document.getElementById('completionForm').classList.add('slide-in');
             
-            // Show patient info with enhanced styling including services
+            // Show patient info with enhanced styling including services and vital signs
             const servicesDisplay = patient.services && patient.services.length > 0 
                 ? patient.services.join(', ') 
                 : (patient.service || 'Not specified');
+
+            let vitalSignsDisplay = '';
+            if (patient.vitalSigns) {
+                const vitals = patient.vitalSigns;
+                vitalSignsDisplay = `
+                    <div style="margin-top: 15px; padding: 15px; background: rgba(245, 158, 11, 0.1); border-radius: 8px;">
+                        <strong style="color: #d97706;">Vital Signs:</strong>
+                        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(120px, 1fr)); gap: 10px; margin-top: 8px; font-size: 0.9rem;">
+                            ${vitals.height ? `<div>📏 ${vitals.height} cm</div>` : ''}
+                            ${vitals.weight ? `<div>⚖️ ${vitals.weight} kg</div>` : ''}
+                            ${vitals.bloodPressure ? `<div>💓 ${vitals.bloodPressure}</div>` : ''}
+                            ${vitals.pulse ? `<div>💗 ${vitals.pulse} bpm</div>` : ''}
+                            ${vitals.temperature ? `<div>🌡️ ${vitals.temperature}°C</div>` : ''}
+                        </div>
+                    </div>
+                `;
+            }
                 
             document.getElementById('selectedPatientInfo').innerHTML = `
                 <h3 style="color: #1e40af; font-size: 1.4rem; font-weight: 700; margin-bottom: 15px;">
@@ -1940,13 +2341,14 @@
                     <div>📞 Phone: ${patient.tel}</div>
                     <div>👥 Family: ${patient.familyGroup}</div>
                 </div>
+                ${vitalSignsDisplay}
             `;
             
             // Clear form
             clearCompletionForm();
         }
 
-        // Enhanced show edit form with multi-service support
+        // Enhanced show edit form with vital signs support
         function showEditForm(patient) {
             editingPatient = patient;
             
@@ -1964,6 +2366,16 @@
             document.getElementById('editOccupation').value = patient.occupation || '';
             document.getElementById('editTel').value = patient.tel;
             document.getElementById('editFamilyGroup').value = patient.familyGroup;
+            
+            // Populate vital signs
+            if (patient.vitalSigns) {
+                const vitals = patient.vitalSigns;
+                document.getElementById('editHeight').value = vitals.height || '';
+                document.getElementById('editWeight').value = vitals.weight || '';
+                document.getElementById('editBloodPressure').value = vitals.bloodPressure || '';
+                document.getElementById('editPulse').value = vitals.pulse || '';
+                document.getElementById('editTemperature').value = vitals.temperature || '';
+            }
             
             // Handle services - support both single service and multiple services
             const patientServices = patient.services && patient.services.length > 0 
@@ -1989,7 +2401,7 @@
             clearAlert('editAlert');
         }
 
-        // Enhanced patient details modal with multi-service support
+        // Enhanced patient details modal with vital signs and past history
         function showPatientDetails(patient) {
             currentPatient = patient;
             
@@ -1999,34 +2411,53 @@
                 : (patient.service ? [patient.service] : []);
             
             let modalContent = `
-                <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 20px; margin-bottom: 25px;">
-                    <div style="padding: 20px; background: rgba(99, 102, 241, 0.1); border-radius: 12px; border-left: 4px solid var(--primary);">
-                        <h4 style="color: var(--primary); font-weight: 600; margin-bottom: 10px;">Personal Information</h4>
-                        <div style="color: var(--dark); line-height: 1.8;">
-                            <div><strong>Name:</strong> ${patient.name}</div>
-                            <div><strong>Age:</strong> ${patient.age} years</div>
-                            <div><strong>Sex:</strong> ${patient.sex}</div>
-                            <div><strong>Occupation:</strong> ${patient.occupation || 'Not specified'}</div>
-                        </div>
+                <div class="patient-details-grid">
+                    <div class="detail-card personal">
+                        <h4 style="color: var(--primary);">👤 Personal Information</h4>
+                        <div class="detail-item"><strong>Name:</strong> ${patient.name}</div>
+                        <div class="detail-item"><strong>Age:</strong> ${patient.age} years</div>
+                        <div class="detail-item"><strong>Sex:</strong> ${patient.sex}</div>
+                        <div class="detail-item"><strong>Occupation:</strong> ${patient.occupation || 'Not specified'}</div>
                     </div>
                     
-                    <div style="padding: 20px; background: rgba(16, 185, 129, 0.1); border-radius: 12px; border-left: 4px solid var(--success);">
-                        <h4 style="color: var(--success); font-weight: 600; margin-bottom: 10px;">Contact & Services</h4>
-                        <div style="color: var(--dark); line-height: 1.8;">
-                            <div><strong>Phone:</strong> ${patient.tel}</div>
-                            <div><strong>Family Group:</strong> ${patient.familyGroup}</div>
-                            <div><strong>Services:</strong></div>
-                            <div style="margin-top: 8px;">
-                                ${servicesDisplay.length > 0 ? 
-                                    servicesDisplay.map(service => `<span class="service-tag">${service}</span>`).join('') : 
-                                    '<span style="color: #6b7280;">No services specified</span>'
-                                }
-                            </div>
-                            <div style="margin-top: 8px;"><strong>Status:</strong> <span class="status-badge ${patient.status === 'completed' ? 'status-completed' : 'status-registered'}">${patient.status === 'completed' ? 'Completed' : 'Pending'}</span></div>
+                    <div class="detail-card contact">
+                        <h4 style="color: var(--success);">📞 Contact & Services</h4>
+                        <div class="detail-item"><strong>Phone:</strong> ${patient.tel}</div>
+                        <div class="detail-item"><strong>Family Group:</strong> ${patient.familyGroup}</div>
+                        <div class="detail-item"><strong>Services:</strong></div>
+                        <div style="margin-top: 8px;">
+                            ${servicesDisplay.length > 0 ? 
+                                servicesDisplay.map(service => `<span class="service-tag">${service}</span>`).join('') : 
+                                '<span style="color: #6b7280;">No services specified</span>'
+                            }
                         </div>
+                        <div class="detail-item" style="margin-top: 8px;"><strong>Status:</strong> <span class="status-badge ${patient.status === 'completed' ? 'status-completed' : 'status-registered'}">${patient.status === 'completed' ? 'Completed' : 'Pending'}</span></div>
                     </div>
-                </div>
+            `;
 
+            // Add vital signs if available
+            if (patient.vitalSigns) {
+                const vitals = patient.vitalSigns;
+                const hasVitals = vitals.height || vitals.weight || vitals.bloodPressure || vitals.pulse || vitals.temperature;
+                
+                if (hasVitals) {
+                    modalContent += `
+                        <div class="detail-card vitals">
+                            <h4 style="color: var(--warning);">🩺 Vital Signs</h4>
+                            ${vitals.height ? `<div class="detail-item"><strong>Height:</strong> ${vitals.height} cm</div>` : ''}
+                            ${vitals.weight ? `<div class="detail-item"><strong>Weight:</strong> ${vitals.weight} kg</div>` : ''}
+                            ${vitals.bloodPressure ? `<div class="detail-item"><strong>Blood Pressure:</strong> ${vitals.bloodPressure}</div>` : ''}
+                            ${vitals.pulse ? `<div class="detail-item"><strong>Pulse:</strong> ${vitals.pulse} bpm</div>` : ''}
+                            ${vitals.temperature ? `<div class="detail-item"><strong>Temperature:</strong> ${vitals.temperature}°C</div>` : ''}
+                        </div>
+                    `;
+                }
+            }
+
+            modalContent += `</div>`;
+
+            // Add registration details
+            modalContent += `
                 <div style="padding: 20px; background: rgba(59, 130, 246, 0.1); border-radius: 12px; border-left: 4px solid var(--info); margin-bottom: 20px;">
                     <h4 style="color: var(--info); font-weight: 600; margin-bottom: 10px;">📅 Registration Details</h4>
                     <div style="color: var(--dark);">
@@ -2037,8 +2468,8 @@
 
             if (patient.status === 'completed') {
                 modalContent += `
-                    <div style="padding: 20px; background: rgba(16, 185, 129, 0.1); border-radius: 12px; border-left: 4px solid var(--success);">
-                        <h4 style="color: var(--success); font-weight: 600; margin-bottom: 15px;">🏥 Medical Information</h4>
+                    <div class="detail-card medical">
+                        <h4 style="color: var(--info);">🏥 Medical Information</h4>
                         
                         <div style="margin-bottom: 15px;">
                             <strong style="color: var(--dark);">Diagnosis:</strong>
@@ -2063,6 +2494,19 @@
                                 ${patient.treatmentPlan || 'Not specified'}
                             </div>
                         </div>
+
+                        ${patient.pastHistory ? `
+                            <div style="margin-bottom: 15px;">
+                                <strong style="color: var(--dark);">Past Medical History:</strong>
+                                <div style="background: white; padding: 10px; border-radius: 8px; margin-top: 5px; max-height: 150px; overflow-y: auto;">
+                                    ${patient.pastHistory.pastMedicalHistory ? `<div><strong>Medical History:</strong> ${patient.pastHistory.pastMedicalHistory}</div>` : ''}
+                                    ${patient.pastHistory.currentMedications ? `<div><strong>Current Medications:</strong> ${patient.pastHistory.currentMedications}</div>` : ''}
+                                    ${patient.pastHistory.allergies ? `<div><strong>Allergies:</strong> ${patient.pastHistory.allergies}</div>` : ''}
+                                    ${patient.pastHistory.familyHistory ? `<div><strong>Family History:</strong> ${patient.pastHistory.familyHistory}</div>` : ''}
+                                    ${patient.pastHistory.socialHistory ? `<div><strong>Social History:</strong> ${patient.pastHistory.socialHistory}</div>` : ''}
+                                </div>
+                            </div>
+                        ` : ''}
 
                         <div>
                             <strong style="color: var(--dark);">Completion Date:</strong>
@@ -2329,6 +2773,11 @@
                             <button class="btn btn-warning btn-small" onclick="showEditForm(${JSON.stringify(patient).replace(/"/g, '&quot;')})" title="Edit patient information">
                                 📝 Edit
                             </button>
+                            ${patient.status === 'completed' ? `
+                                <button class="btn btn-primary btn-small" onclick="showCompletionForm(${JSON.stringify(patient).replace(/"/g, '&quot;')})" title="Edit completed record">
+                                    📋 Edit Record
+                                </button>
+                            ` : ''}
                             <button class="btn btn-danger btn-small" onclick="currentPatient = ${JSON.stringify(patient).replace(/"/g, '&quot;')}; confirmDeletePatient()" title="Delete patient">
                                 🗑️ Delete
                             </button>
@@ -2393,7 +2842,7 @@
             `}).join('');
         }
 
-        // Enhanced Reports Functions
+        // Enhanced Reports Functions with Demographics
         async function generateReport(type) {
             const reportResults = document.getElementById('reportResults');
             const reportContent = document.getElementById('reportContent');
@@ -2436,6 +2885,32 @@
                 familyBreakdown[patient.familyGroup] = (familyBreakdown[patient.familyGroup] || 0) + 1;
             });
 
+            // Sex ratio breakdown
+            const sexBreakdown = {
+                Male: patients.filter(p => p.sex === 'Male').length,
+                Female: patients.filter(p => p.sex === 'Female').length
+            };
+
+            // Age ranges breakdown
+            const ageRanges = {
+                '0-18': 0,
+                '19-30': 0,
+                '31-45': 0,
+                '46-60': 0,
+                '61-75': 0,
+                '76+': 0
+            };
+
+            patients.forEach(patient => {
+                const age = patient.age;
+                if (age <= 18) ageRanges['0-18']++;
+                else if (age <= 30) ageRanges['19-30']++;
+                else if (age <= 45) ageRanges['31-45']++;
+                else if (age <= 60) ageRanges['46-60']++;
+                else if (age <= 75) ageRanges['61-75']++;
+                else ageRanges['76+']++;
+            });
+
             // Recent registrations (last 7 days)
             const sevenDaysAgo = new Date();
             sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
@@ -2464,25 +2939,69 @@
                     </div>
                 </div>
 
-                <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 25px;">
-                    <div style="background: white; padding: 25px; border-radius: 16px; box-shadow: var(--shadow);">
-                        <h4 style="color: var(--primary); font-weight: 700; margin-bottom: 15px;">📊 Service Distribution</h4>
-                        ${Object.entries(serviceBreakdown).map(([service, count]) => `
-                            <div style="display: flex; justify-content: space-between; align-items: center; padding: 8px 0; border-bottom: 1px solid #e5e7eb;">
-                                <span>${service}</span>
-                                <span style="background: var(--primary); color: white; padding: 4px 8px; border-radius: 8px; font-size: 12px; font-weight: 600;">${count}</span>
-                            </div>
-                        `).join('') || '<div style="text-center; color: #6b7280; padding: 20px;">No services recorded</div>'}
+                <div class="report-stats-grid">
+                    <div class="stat-breakdown-card">
+                        <div class="stat-breakdown-title">📊 Service Distribution</div>
+                        ${Object.entries(serviceBreakdown).map(([service, count]) => {
+                            const percentage = totalPatients > 0 ? Math.round((count / totalPatients) * 100) : 0;
+                            return `
+                                <div class="breakdown-item">
+                                    <span class="breakdown-label">${service}</span>
+                                    <div>
+                                        <span class="breakdown-value">${count}</span>
+                                        <span class="breakdown-percentage">(${percentage}%)</span>
+                                    </div>
+                                </div>
+                            `;
+                        }).join('') || '<div style="text-center; color: #6b7280; padding: 20px;">No services recorded</div>'}
                     </div>
 
-                    <div style="background: white; padding: 25px; border-radius: 16px; box-shadow: var(--shadow);">
-                        <h4 style="color: var(--success); font-weight: 700; margin-bottom: 15px;">👥 Family Group Distribution</h4>
-                        ${Object.entries(familyBreakdown).map(([family, count]) => `
-                            <div style="display: flex; justify-content: space-between; align-items: center; padding: 8px 0; border-bottom: 1px solid #e5e7eb;">
-                                <span>${family}</span>
-                                <span style="background: var(--success); color: white; padding: 4px 8px; border-radius: 8px; font-size: 12px; font-weight: 600;">${count}</span>
-                            </div>
-                        `).join('')}
+                    <div class="stat-breakdown-card">
+                        <div class="stat-breakdown-title">👥 Family Group Distribution</div>
+                        ${Object.entries(familyBreakdown).map(([family, count]) => {
+                            const percentage = totalPatients > 0 ? Math.round((count / totalPatients) * 100) : 0;
+                            return `
+                                <div class="breakdown-item">
+                                    <span class="breakdown-label">${family}</span>
+                                    <div>
+                                        <span class="breakdown-value">${count}</span>
+                                        <span class="breakdown-percentage">(${percentage}%)</span>
+                                    </div>
+                                </div>
+                            `;
+                        }).join('')}
+                    </div>
+
+                    <div class="stat-breakdown-card">
+                        <div class="stat-breakdown-title">⚧️ Sex Ratio</div>
+                        ${Object.entries(sexBreakdown).map(([sex, count]) => {
+                            const percentage = totalPatients > 0 ? Math.round((count / totalPatients) * 100) : 0;
+                            return `
+                                <div class="breakdown-item">
+                                    <span class="breakdown-label">${sex}</span>
+                                    <div>
+                                        <span class="breakdown-value">${count}</span>
+                                        <span class="breakdown-percentage">(${percentage}%)</span>
+                                    </div>
+                                </div>
+                            `;
+                        }).join('')}
+                    </div>
+
+                    <div class="stat-breakdown-card">
+                        <div class="stat-breakdown-title">🎂 Age Distribution</div>
+                        ${Object.entries(ageRanges).map(([range, count]) => {
+                            const percentage = totalPatients > 0 ? Math.round((count / totalPatients) * 100) : 0;
+                            return `
+                                <div class="breakdown-item">
+                                    <span class="breakdown-label">${range} years</span>
+                                    <div>
+                                        <span class="breakdown-value">${count}</span>
+                                        <span class="breakdown-percentage">(${percentage}%)</span>
+                                    </div>
+                                </div>
+                            `;
+                        }).join('')}
                     </div>
                 </div>
             `;
@@ -2561,7 +3080,7 @@
             try {
                 const dataToExport = {
                     exportDate: new Date().toISOString(),
-                    exportedBy: 'Health Campaign System v3.1.0 - Premium Multi-Service',
+                    exportedBy: 'Health Campaign System v4.0.0 - Enhanced Premium Multi-Service',
                     totalPatients: patients.length,
                     patients: patients.map(patient => ({
                         ...patient,
@@ -2597,6 +3116,13 @@
             document.getElementById('regTel').value = '';
             document.getElementById('regFamilyGroup').value = '';
             
+            // Clear vital signs
+            document.getElementById('regHeight').value = '';
+            document.getElementById('regWeight').value = '';
+            document.getElementById('regBloodPressure').value = '';
+            document.getElementById('regPulse').value = '';
+            document.getElementById('regTemperature').value = '';
+            
             // Clear all service checkboxes
             document.querySelectorAll('#servicesCheckboxes input[type="checkbox"]').forEach(checkbox => {
                 checkbox.checked = false;
@@ -2612,13 +3138,29 @@
         function clearCompletionForm() {
             document.getElementById('compDiagnosis').value = '';
             document.getElementById('compTreatmentPlan').value = '';
+            
+            // Clear past history fields
+            document.getElementById('pastMedicalHistory').value = '';
+            document.getElementById('currentMedications').value = '';
+            document.getElementById('allergies').value = '';
+            document.getElementById('familyHistory').value = '';
+            document.getElementById('socialHistory').value = '';
+            
             clearAlert('completionAlert');
             
             // Clear all checkboxes
             const checkboxes = document.querySelectorAll('#completionForm input[type="checkbox"]');
             checkboxes.forEach(checkbox => {
                 checkbox.checked = false;
+                if (checkbox.closest('.checkbox-item')) {
+                    checkbox.closest('.checkbox-item').classList.remove('selected');
+                }
             });
+            
+            // Reset others input
+            document.getElementById('labOthersInput').value = '';
+            document.getElementById('othersInputContainer').classList.add('hidden');
+            document.getElementById('othersInputContainer').classList.remove('active');
         }
 
         function showAlert(containerId, message, type) {
@@ -2685,8 +3227,8 @@
             }
         });
 
-        console.log('🏥 Health Campaign Management System v3.1.0 - Premium Multi-Service Edition Loaded');
-        console.log('✨ Features: Multi-service selection, Premium UI, Real-time updates, Professional design');
+        console.log('🏥 Health Campaign Management System v4.0.0 - Enhanced Premium Multi-Service Edition Loaded');
+        console.log('✨ Enhanced Features: Vital Signs, Editable Completed Records, Past History, Custom Lab Tests, Demographics Reports');
     </script>
 </body>
 </html>
