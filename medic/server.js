@@ -49,7 +49,7 @@ mongoose.connect(MONGODB_URI, {
     process.exit(1);
 });
 
-// Enhanced Patient Schema - Production Ready with Multi-Service Support
+// Enhanced Patient Schema - Production Ready with Enhanced Features
 const patientSchema = new mongoose.Schema({
     name: { 
         type: String, 
@@ -125,15 +125,43 @@ const patientSchema = new mongoose.Schema({
                 }
                 const validServices = [
                     'General consultations', 
-                    'Eye consultation',  // Updated from 'Eye con'
+                    'Eye consultation',
                     'Gynaecology', 
                     'Cervical cancer screening', 
-                    'Sexual and reproductive health',  // NEW SERVICE
-                    'Dental consultation'  // NEW SERVICE
+                    'Sexual and reproductive health',
+                    'Dental consultation'
                 ];
                 return services.every(service => validServices.includes(service));
             },
             message: 'Invalid service specified. Valid services are: General consultations, Eye consultation, Gynaecology, Cervical cancer screening, Sexual and reproductive health, Dental consultation'
+        }
+    },
+    // NEW: Vital Signs
+    vitalSigns: {
+        height: {
+            type: Number,
+            min: [0, 'Height cannot be negative'],
+            max: [300, 'Height cannot exceed 300 cm']
+        },
+        weight: {
+            type: Number,
+            min: [0, 'Weight cannot be negative'],
+            max: [1000, 'Weight cannot exceed 1000 kg']
+        },
+        bloodPressure: {
+            type: String,
+            trim: true,
+            maxlength: [20, 'Blood pressure reading cannot exceed 20 characters']
+        },
+        pulse: {
+            type: Number,
+            min: [0, 'Pulse cannot be negative'],
+            max: [300, 'Pulse cannot exceed 300 bpm']
+        },
+        temperature: {
+            type: Number,
+            min: [20, 'Temperature cannot be below 20°C'],
+            max: [50, 'Temperature cannot exceed 50°C']
         }
     },
     registrationDate: { 
@@ -166,14 +194,10 @@ const patientSchema = new mongoose.Schema({
         validate: {
             validator: function(tests) {
                 if (!tests || tests.length === 0) return true; // Allow empty array
-                const validTests = [
-                    'Malaria', 'HIV', 'HBV', 'HCV', 'Blood grouping', 
-                    'Blood glucose', 'Syphilis', 'Ultrasound', 'X-ray',
-                    'ECG', 'Urinalysis', 'Lipid Profile'
-                ];
-                return tests.every(test => validTests.includes(test));
+                // Allow any lab test names since we support custom "others" input
+                return tests.every(test => typeof test === 'string' && test.trim().length > 0);
             },
-            message: 'Invalid lab test specified'
+            message: 'Lab test names must be non-empty strings'
         }
     },
     treatmentPlan: { 
@@ -181,6 +205,39 @@ const patientSchema = new mongoose.Schema({
         default: '',
         trim: true,
         maxlength: [3000, 'Treatment plan cannot exceed 3000 characters']
+    },
+    // NEW: Past History
+    pastHistory: {
+        pastMedicalHistory: {
+            type: String,
+            default: '',
+            trim: true,
+            maxlength: [2000, 'Past medical history cannot exceed 2000 characters']
+        },
+        currentMedications: {
+            type: String,
+            default: '',
+            trim: true,
+            maxlength: [1000, 'Current medications cannot exceed 1000 characters']
+        },
+        allergies: {
+            type: String,
+            default: '',
+            trim: true,
+            maxlength: [1000, 'Allergies cannot exceed 1000 characters']
+        },
+        familyHistory: {
+            type: String,
+            default: '',
+            trim: true,
+            maxlength: [1500, 'Family history cannot exceed 1500 characters']
+        },
+        socialHistory: {
+            type: String,
+            default: '',
+            trim: true,
+            maxlength: [1000, 'Social history cannot exceed 1000 characters']
+        }
     },
     completionDate: { 
         type: String, 
@@ -235,6 +292,8 @@ patientSchema.index({ services: 1, status: 1 });
 patientSchema.index({ familyGroup: 1, status: 1 });
 patientSchema.index({ isDeleted: 1, status: 1 });
 patientSchema.index({ createdAt: -1 });
+patientSchema.index({ sex: 1 }); // NEW: For sex ratio reports
+patientSchema.index({ age: 1 }); // NEW: For age distribution reports
 
 // Pre-save middleware for data normalization and validation
 patientSchema.pre('save', function(next) {
@@ -286,6 +345,26 @@ patientSchema.pre('save', function(next) {
         this.age = ageNum;
     }
     
+    // Handle vital signs number conversion
+    if (this.vitalSigns) {
+        if (this.vitalSigns.height && typeof this.vitalSigns.height === 'string') {
+            const height = parseFloat(this.vitalSigns.height);
+            this.vitalSigns.height = isNaN(height) ? undefined : height;
+        }
+        if (this.vitalSigns.weight && typeof this.vitalSigns.weight === 'string') {
+            const weight = parseFloat(this.vitalSigns.weight);
+            this.vitalSigns.weight = isNaN(weight) ? undefined : weight;
+        }
+        if (this.vitalSigns.pulse && typeof this.vitalSigns.pulse === 'string') {
+            const pulse = parseInt(this.vitalSigns.pulse);
+            this.vitalSigns.pulse = isNaN(pulse) ? undefined : pulse;
+        }
+        if (this.vitalSigns.temperature && typeof this.vitalSigns.temperature === 'string') {
+            const temp = parseFloat(this.vitalSigns.temperature);
+            this.vitalSigns.temperature = isNaN(temp) ? undefined : temp;
+        }
+    }
+    
     next();
 });
 
@@ -322,6 +401,27 @@ patientSchema.pre(['updateOne', 'findOneAndUpdate'], function(next) {
         }
         this.set({ services: [serviceToAdd] });
         this.set({ service: undefined });
+    }
+    
+    // Handle vital signs conversion in updates
+    if (update.vitalSigns) {
+        const vitals = update.vitalSigns;
+        if (vitals.height && typeof vitals.height === 'string') {
+            const height = parseFloat(vitals.height);
+            this.set({ 'vitalSigns.height': isNaN(height) ? undefined : height });
+        }
+        if (vitals.weight && typeof vitals.weight === 'string') {
+            const weight = parseFloat(vitals.weight);
+            this.set({ 'vitalSigns.weight': isNaN(weight) ? undefined : weight });
+        }
+        if (vitals.pulse && typeof vitals.pulse === 'string') {
+            const pulse = parseInt(vitals.pulse);
+            this.set({ 'vitalSigns.pulse': isNaN(pulse) ? undefined : pulse });
+        }
+        if (vitals.temperature && typeof vitals.temperature === 'string') {
+            const temp = parseFloat(vitals.temperature);
+            this.set({ 'vitalSigns.temperature': isNaN(temp) ? undefined : temp });
+        }
     }
     
     next();
@@ -486,9 +586,14 @@ app.get('/api/health', async (req, res) => {
             timestamp: new Date().toISOString(),
             mongoStatus: 'connected',
             environment: process.env.NODE_ENV || 'development',
-            version: '3.1.0',
+            version: '4.0.0',
             features: [
-                'Multi-Service Selection Support',
+                'Enhanced Multi-Service Selection Support',
+                'Vital Signs Recording',
+                'Past Medical History',
+                'Editable Completed Records',
+                'Custom Lab Tests with Others Option',
+                'Demographics Reporting (Sex Ratio, Age Distribution)',
                 'Sexual and Reproductive Health Service',
                 'Dental Consultation Service',
                 'Enhanced Service Management'
@@ -608,7 +713,7 @@ app.get('/api/patients', async (req, res) => {
     }
 });
 
-// 3. Create New Patient - Enhanced with Multi-Service Support
+// 3. Create New Patient - Enhanced with Vital Signs Support
 app.post('/api/patients', async (req, res) => {
     try {
         console.log('➕ Creating new patient:', req.body.name);
@@ -637,6 +742,16 @@ app.post('/api/patients', async (req, res) => {
                 error: 'Services required', 
                 message: 'At least one service must be specified' 
             });
+        }
+        
+        // Handle vital signs
+        if (inputData.vitalSigns) {
+            patientData.vitalSigns = {};
+            if (inputData.vitalSigns.height) patientData.vitalSigns.height = inputData.vitalSigns.height;
+            if (inputData.vitalSigns.weight) patientData.vitalSigns.weight = inputData.vitalSigns.weight;
+            if (inputData.vitalSigns.bloodPressure) patientData.vitalSigns.bloodPressure = inputData.vitalSigns.bloodPressure;
+            if (inputData.vitalSigns.pulse) patientData.vitalSigns.pulse = inputData.vitalSigns.pulse;
+            if (inputData.vitalSigns.temperature) patientData.vitalSigns.temperature = inputData.vitalSigns.temperature;
         }
         
         // Validate required fields
@@ -703,7 +818,8 @@ app.post('/api/patients', async (req, res) => {
             id: patient._id,
             name: patient.name,
             tel: patient.tel,
-            services: patient.services
+            services: patient.services,
+            vitalSigns: patient.vitalSigns ? 'included' : 'none'
         });
         
         res.status(201).json({
@@ -717,7 +833,7 @@ app.post('/api/patients', async (req, res) => {
     }
 });
 
-// 4. Update Patient - Enhanced with Multi-Service Support
+// 4. Update Patient - Enhanced with Vital Signs and Past History Support
 app.put('/api/patients', async (req, res) => {
     try {
         const { id, ...updateData } = req.body;
@@ -795,6 +911,40 @@ app.put('/api/patients', async (req, res) => {
                     message: 'Please select at least one service'
                 });
             }
+        }
+        
+        // Handle vital signs update
+        if (sanitizedData.vitalSigns) {
+            // Merge with existing vital signs
+            const currentVitals = currentPatient.vitalSigns || {};
+            sanitizedData.vitalSigns = {
+                ...currentVitals,
+                ...sanitizedData.vitalSigns
+            };
+            
+            // Remove empty vital signs
+            Object.keys(sanitizedData.vitalSigns).forEach(key => {
+                if (!sanitizedData.vitalSigns[key] || sanitizedData.vitalSigns[key] === '') {
+                    delete sanitizedData.vitalSigns[key];
+                }
+            });
+        }
+        
+        // Handle past history update
+        if (sanitizedData.pastHistory) {
+            // Merge with existing past history
+            const currentHistory = currentPatient.pastHistory || {};
+            sanitizedData.pastHistory = {
+                ...currentHistory,
+                ...sanitizedData.pastHistory
+            };
+            
+            // Remove empty history fields
+            Object.keys(sanitizedData.pastHistory).forEach(key => {
+                if (!sanitizedData.pastHistory[key] || sanitizedData.pastHistory[key] === '') {
+                    delete sanitizedData.pastHistory[key];
+                }
+            });
         }
         
         // Add completion timestamp if completing
@@ -936,10 +1086,10 @@ app.post('/api/patient', async (req, res) => {
     }
 });
 
-// 6. Enhanced Statistics with Multi-Service Support
+// 6. Enhanced Statistics with Demographics Support
 app.get('/api/stats', async (req, res) => {
     try {
-        console.log('📊 Generating comprehensive statistics');
+        console.log('📊 Generating comprehensive statistics with demographics');
         
         const { period = '30' } = req.query;
         const daysBack = parseInt(period);
@@ -954,6 +1104,8 @@ app.get('/api/stats', async (req, res) => {
             recentRegistrations,
             serviceStats,
             familyGroupStats,
+            sexStats,
+            ageStats,
             dailyRegistrations,
             completionTrend
         ] = await Promise.all([
@@ -984,10 +1136,39 @@ app.get('/api/stats', async (req, res) => {
                 { $group: { _id: '$allServices', count: { $sum: 1 } } },
                 { $sort: { count: -1 } }
             ]),
+            // Family group statistics
             Patient.aggregate([
                 { $match: { isDeleted: { $ne: true } } },
                 { $group: { _id: '$familyGroup', count: { $sum: 1 } } },
                 { $sort: { count: -1 } }
+            ]),
+            // Sex ratio statistics
+            Patient.aggregate([
+                { $match: { isDeleted: { $ne: true } } },
+                { $group: { _id: '$sex', count: { $sum: 1 } } },
+                { $sort: { count: -1 } }
+            ]),
+            // Age distribution statistics
+            Patient.aggregate([
+                { $match: { isDeleted: { $ne: true } } },
+                {
+                    $project: {
+                        ageRange: {
+                            $switch: {
+                                branches: [
+                                    { case: { $lte: ['$age', 18] }, then: '0-18' },
+                                    { case: { $lte: ['$age', 30] }, then: '19-30' },
+                                    { case: { $lte: ['$age', 45] }, then: '31-45' },
+                                    { case: { $lte: ['$age', 60] }, then: '46-60' },
+                                    { case: { $lte: ['$age', 75] }, then: '61-75' }
+                                ],
+                                default: '76+'
+                            }
+                        }
+                    }
+                },
+                { $group: { _id: '$ageRange', count: { $sum: 1 } } },
+                { $sort: { _id: 1 } }
             ]),
             // Daily registrations trend
             Patient.aggregate([
@@ -1045,6 +1226,15 @@ app.get('/api/stats', async (req, res) => {
                 acc[item._id] = item.count;
                 return acc;
             }, {}),
+            // NEW: Demographics
+            sexDistribution: sexStats.reduce((acc, item) => {
+                acc[item._id] = item.count;
+                return acc;
+            }, {}),
+            ageDistribution: ageStats.reduce((acc, item) => {
+                acc[item._id] = item.count;
+                return acc;
+            }, {}),
             trends: {
                 dailyRegistrations: dailyRegistrations.reduce((acc, item) => {
                     acc[item._id] = item.count;
@@ -1062,7 +1252,7 @@ app.get('/api/stats', async (req, res) => {
             }
         };
         
-        console.log('✅ Statistics generated successfully');
+        console.log('✅ Statistics with demographics generated successfully');
         
         res.json({
             success: true,
@@ -1253,7 +1443,7 @@ app.post('/api/delete', async (req, res) => {
     }
 });
 
-// 9. Export Data - Enhanced with Multi-Service Support
+// 9. Export Data - Enhanced with Vital Signs and Past History
 app.get('/api/export', async (req, res) => {
     try {
         const { 
@@ -1304,12 +1494,17 @@ app.get('/api/export', async (req, res) => {
         const exportData = {
             exportInfo: {
                 exportDate: new Date().toISOString(),
-                exportedBy: 'Health Campaign System v3.1.0',
+                exportedBy: 'Health Campaign System v4.0.0 - Enhanced Premium',
                 totalRecords: patients.length,
                 format: format,
                 filters: { status, service, familyGroup, includeDeleted, dateFrom, dateTo },
                 features: [
-                    'Multi-Service Selection Support',
+                    'Enhanced Multi-Service Selection Support',
+                    'Vital Signs Recording',
+                    'Past Medical History',
+                    'Editable Completed Records',
+                    'Custom Lab Tests with Others Option',
+                    'Demographics Reporting',
                     'Sexual and Reproductive Health Service', 
                     'Dental Consultation Service'
                 ]
@@ -1337,14 +1532,16 @@ app.get('/api/export', async (req, res) => {
     }
 });
 
-// Enhanced CSV conversion with multi-service support
+// Enhanced CSV conversion with vital signs and past history support
 function convertToCSV(patients) {
     if (!patients.length) return 'No data available for export';
     
     const headers = [
         'ID', 'Name', 'Age', 'Sex', 'Occupation', 'Phone', 'Family Group', 
         'Services', 'Status', 'Registration Date', 'Registration Time',
+        'Height (cm)', 'Weight (kg)', 'Blood Pressure', 'Pulse (bpm)', 'Temperature (°C)',
         'Diagnosis', 'Lab Tests', 'Treatment Plan', 'Completion Date', 'Completion Time',
+        'Past Medical History', 'Current Medications', 'Allergies', 'Family History', 'Social History',
         'Created At', 'Last Modified'
     ];
     
@@ -1364,6 +1561,12 @@ function convertToCSV(patients) {
             const servicesDisplay = patient.services && patient.services.length > 0 
                 ? patient.services.join('; ') 
                 : (patient.service || '');
+            
+            // Handle vital signs
+            const vitals = patient.vitalSigns || {};
+            
+            // Handle past history
+            const history = patient.pastHistory || {};
                 
             return [
                 escapeCsvField(patient._id),
@@ -1377,11 +1580,21 @@ function convertToCSV(patients) {
                 escapeCsvField(patient.status),
                 escapeCsvField(patient.registrationDate),
                 escapeCsvField(patient.registrationTime || ''),
+                escapeCsvField(vitals.height || ''),
+                escapeCsvField(vitals.weight || ''),
+                escapeCsvField(vitals.bloodPressure || ''),
+                escapeCsvField(vitals.pulse || ''),
+                escapeCsvField(vitals.temperature || ''),
                 escapeCsvField(patient.diagnosis || ''),
                 escapeCsvField(patient.labTests?.join('; ') || ''),
                 escapeCsvField(patient.treatmentPlan || ''),
                 escapeCsvField(patient.completionDate || ''),
                 escapeCsvField(patient.completionTime || ''),
+                escapeCsvField(history.pastMedicalHistory || ''),
+                escapeCsvField(history.currentMedications || ''),
+                escapeCsvField(history.allergies || ''),
+                escapeCsvField(history.familyHistory || ''),
+                escapeCsvField(history.socialHistory || ''),
                 escapeCsvField(patient.createdAt ? new Date(patient.createdAt).toLocaleString() : ''),
                 escapeCsvField(patient.lastModified ? new Date(patient.lastModified).toLocaleString() : '')
             ].join(',');
@@ -1506,7 +1719,7 @@ app.get('/api/patients/:id/history', async (req, res) => {
     }
 });
 
-// 13. System Information
+// 13. Enhanced System Information
 app.get('/api/system', async (req, res) => {
     try {
         const dbStats = await mongoose.connection.db.stats();
@@ -1514,13 +1727,18 @@ app.get('/api/system', async (req, res) => {
         res.json({
             success: true,
             system: {
-                version: '3.1.0',
+                version: '4.0.0',
                 environment: process.env.NODE_ENV || 'development',
                 nodeVersion: process.version,
                 uptime: process.uptime(),
                 memory: process.memoryUsage(),
                 features: [
-                    'Multi-Service Selection Support',
+                    'Enhanced Multi-Service Selection Support',
+                    'Vital Signs Recording (Height, Weight, BP, Pulse, Temperature)',
+                    'Past Medical History (Medical History, Medications, Allergies, Family History, Social History)',
+                    'Editable Completed Records',
+                    'Custom Lab Tests with Others Option',
+                    'Demographics Reporting (Sex Ratio, Age Distribution)',
                     'Sexual and Reproductive Health Service',
                     'Dental Consultation Service',
                     'Enhanced Service Management',
@@ -1534,6 +1752,25 @@ app.get('/api/system', async (req, res) => {
                     'Cervical cancer screening',
                     'Sexual and reproductive health',
                     'Dental consultation'
+                ],
+                vitalSigns: [
+                    'Height (cm)',
+                    'Weight (kg)', 
+                    'Blood Pressure',
+                    'Pulse (bpm)',
+                    'Temperature (°C)'
+                ],
+                pastHistoryFields: [
+                    'Past Medical History',
+                    'Current Medications',
+                    'Allergies',
+                    'Family History',
+                    'Social History'
+                ],
+                labTests: [
+                    'Malaria', 'HIV', 'HBV', 'HCV', 'Blood grouping', 
+                    'Blood glucose', 'Syphilis', 'Ultrasound', 'X-ray',
+                    'ECG', 'Urinalysis', 'Lipid Profile', 'Others (Custom)'
                 ],
                 database: {
                     name: mongoose.connection.name,
@@ -1549,7 +1786,7 @@ app.get('/api/system', async (req, res) => {
     }
 });
 
-// 14. Bulk Operations - Enhanced with Multi-Service Support
+// 14. Enhanced Bulk Operations - Updated with Vital Signs Support
 app.post('/api/patients/bulk', async (req, res) => {
     try {
         const { operation, patientIds, updateData, filters } = req.body;
@@ -1717,18 +1954,21 @@ app.get('/', (req, res) => {
     res.sendFile(__dirname + '/index.html');
 });
 
-// API documentation endpoint - Updated
+// Enhanced API documentation endpoint
 app.get('/api', (req, res) => {
     res.json({
         name: 'Health Campaign Management API',
-        version: '3.1.0',
-        description: 'Comprehensive patient registration and medical records management system with multi-service support',
+        version: '4.0.0',
+        description: 'Comprehensive patient registration and medical records management system with enhanced features',
         newFeatures: [
-            'Multi-Service Selection - Patients can register for multiple services',
+            'Vital Signs Recording - Height, Weight, Blood Pressure, Pulse, Temperature',
+            'Past Medical History - Medical History, Current Medications, Allergies, Family History, Social History',
+            'Editable Completed Records - Ability to edit records even after completion',
+            'Custom Lab Tests - Others option for lab tests not in predefined list',
+            'Demographics Reporting - Sex ratio and age distribution statistics',
+            'Enhanced Multi-Service Selection - Patients can register for multiple services',
             'Sexual and Reproductive Health Service',
-            'Dental Consultation Service',
-            'Enhanced Service Management',
-            'Backward Compatibility with legacy single service'
+            'Dental Consultation Service'
         ],
         supportedServices: [
             'General consultations',
@@ -1738,32 +1978,58 @@ app.get('/api', (req, res) => {
             'Sexual and reproductive health',
             'Dental consultation'
         ],
+        vitalSigns: [
+            'Height (cm) - Numeric field with validation',
+            'Weight (kg) - Numeric field with validation',
+            'Blood Pressure - Text field for readings like 120/80 mmHg',
+            'Pulse (bpm) - Numeric field for heart rate',
+            'Temperature (°C) - Numeric field with decimal support'
+        ],
+        pastHistoryFields: [
+            'Past Medical History - Previous illnesses, surgeries, hospitalizations',
+            'Current Medications - List of current medications and dosages',
+            'Allergies - Drug allergies, food allergies, environmental allergies',
+            'Family History - Relevant family medical history',
+            'Social History - Smoking, alcohol, lifestyle factors'
+        ],
+        labTests: [
+            'Predefined Tests: Malaria, HIV, HBV, HCV, Blood grouping, Blood glucose, Syphilis, Ultrasound, X-ray, ECG, Urinalysis, Lipid Profile',
+            'Custom Tests: Others option allows entry of custom lab tests not in predefined list'
+        ],
+        demographics: [
+            'Sex Ratio - Male/Female distribution with percentages',
+            'Age Distribution - Breakdown by age ranges: 0-18, 19-30, 31-45, 46-60, 61-75, 76+ years'
+        ],
         endpoints: {
-            'GET /api/health': 'System health check and statistics',
-            'GET /api/patients': 'Get all patients with filtering and pagination',
-            'POST /api/patients': 'Create new patient with multi-service support',
-            'PUT /api/patients': 'Update patient information with multi-service support',
-            'GET /api/patients/:id': 'Get single patient by ID',
+            'GET /api/health': 'Enhanced system health check with comprehensive statistics',
+            'GET /api/patients': 'Get all patients with advanced filtering and pagination',
+            'POST /api/patients': 'Create new patient with vital signs and multi-service support',
+            'PUT /api/patients': 'Update patient with vital signs, past history, and multi-service support',
+            'GET /api/patients/:id': 'Get single patient by ID with full details',
             'DELETE /api/patients/:id': 'Delete patient (soft delete by default)',
             'POST /api/patients/:id/restore': 'Restore deleted patient',
             'GET /api/patients/deleted': 'Get deleted patients',
             'GET /api/patients/:id/history': 'Get patient modification history',
-            'GET /api/stats': 'Get comprehensive system statistics',
+            'GET /api/stats': 'Get comprehensive system statistics with demographics',
             'POST /api/search': 'Search patients with advanced filters',
             'POST /api/patients/bulk': 'Bulk operations on patients',
-            'GET /api/export': 'Export patient data (JSON/CSV)',
-            'GET /api/system': 'Get system information',
+            'GET /api/export': 'Export patient data with vital signs and history (JSON/CSV)',
+            'GET /api/system': 'Get enhanced system information',
             'POST /api/patient': 'Get single patient (legacy endpoint)',
             'POST /api/delete': 'Delete patient (legacy endpoint)'
         },
         features: [
-            'Multi-Service Patient Registration',
-            'Medical Records with Lab Tests',
+            'Enhanced Multi-Service Patient Registration',
+            'Comprehensive Vital Signs Recording',
+            'Detailed Past Medical History',
+            'Medical Records with Custom Lab Tests',
+            'Editable Completed Records',
+            'Demographics and Statistical Reporting',
             'Multiple Services Support per Patient',
             'Advanced Search & Filtering',
             'Soft Delete with Restore',
             'Bulk Operations',
-            'Data Export (JSON/CSV)',
+            'Enhanced Data Export (JSON/CSV)',
             'Comprehensive Audit Trail',
             'Enhanced Validation',
             'Performance Optimized',
@@ -1834,7 +2100,7 @@ process.on('unhandledRejection', (reason, promise) => {
 const server = app.listen(PORT, () => {
     console.log('🚀 ========================================');
     console.log('🚀  Health Campaign Management System');
-    console.log('🚀  Multi-Service Support Server v3.1.0');
+    console.log('🚀  Enhanced Premium Server v4.0.0');
     console.log('🚀 ========================================');
     console.log(`🚀  Port: ${PORT}`);
     console.log(`🚀  Environment: ${process.env.NODE_ENV || 'development'}`);
@@ -1842,12 +2108,27 @@ const server = app.listen(PORT, () => {
     console.log(`🚀  Health Check: http://localhost:${PORT}/api/health`);
     console.log(`🚀  API Documentation: http://localhost:${PORT}/api`);
     console.log('🚀 ========================================');
-    console.log('🚀  NEW FEATURES v3.1.0:');
-    console.log('🚀  ✅ Multi-Service Selection Support');
-    console.log('🚀  ✅ Sexual and Reproductive Health Service');
-    console.log('🚀  ✅ Dental Consultation Service');
-    console.log('🚀  ✅ Enhanced Service Management');
-    console.log('🚀  ✅ Backward Compatibility');
+    console.log('🚀  NEW ENHANCED FEATURES v4.0.0:');
+    console.log('🚀  ✅ Vital Signs Recording');
+    console.log('🚀  ✅ Past Medical History');
+    console.log('🚀  ✅ Editable Completed Records');
+    console.log('🚀  ✅ Custom Lab Tests (Others Option)');
+    console.log('🚀  ✅ Demographics Reporting');
+    console.log('🚀  ✅ Enhanced Multi-Service Support');
+    console.log('🚀 ========================================');
+    console.log('🚀  VITAL SIGNS SUPPORTED:');
+    console.log('🚀  📏 Height (cm)');
+    console.log('🚀  ⚖️ Weight (kg)');
+    console.log('🚀  💓 Blood Pressure');
+    console.log('🚀  💗 Pulse (bpm)');
+    console.log('🚀  🌡️ Temperature (°C)');
+    console.log('🚀 ========================================');
+    console.log('🚀  PAST HISTORY FIELDS:');
+    console.log('🚀  📋 Past Medical History');
+    console.log('🚀  💊 Current Medications');
+    console.log('🚀  ⚠️ Allergies');
+    console.log('🚀  👨‍👩‍👧‍👦 Family History');
+    console.log('🚀  🚬 Social History');
     console.log('🚀 ========================================');
     console.log('🚀  SUPPORTED SERVICES:');
     console.log('🚀  🏥 General consultations');
@@ -1858,14 +2139,16 @@ const server = app.listen(PORT, () => {
     console.log('🚀  🦷 Dental consultation');
     console.log('🚀 ========================================');
     console.log('🚀  CORE FEATURES:');
-    console.log('🚀  ✅ Enhanced Patient Registration');
-    console.log('🚀  ✅ Advanced Medical Records Management');
-    console.log('🚀  ✅ Multiple Services & Lab Tests Support');
+    console.log('🚀  ✅ Enhanced Patient Registration with Vital Signs');
+    console.log('🚀  ✅ Advanced Medical Records with Past History');
+    console.log('🚀  ✅ Multiple Services & Custom Lab Tests Support');
+    console.log('🚀  ✅ Editable Completed Records');
+    console.log('🚀  ✅ Demographics Reporting (Sex Ratio & Age Distribution)');
     console.log('🚀  ✅ Full CRUD Operations');
     console.log('🚀  ✅ Soft Delete with Restore');
     console.log('🚀  ✅ Advanced Search & Filtering');
     console.log('🚀  ✅ Bulk Operations');
-    console.log('🚀  ✅ Data Export (JSON/CSV)');
+    console.log('🚀  ✅ Enhanced Data Export (JSON/CSV)');
     console.log('🚀  ✅ Comprehensive Audit Trail');
     console.log('🚀  ✅ Enhanced Validation & Error Handling');
     console.log('🚀  ✅ Performance Optimized with Indexes');
